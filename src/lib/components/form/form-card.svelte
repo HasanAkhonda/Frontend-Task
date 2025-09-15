@@ -200,8 +200,8 @@
     >
       <Card.Content class="px-0 flex-1 w-full max-w-2xl">
         <TiptapEditor
+        class=" w-full h-[450px] bg-gray-100 dark:bg-gray-700 rounded-lg p-4 overflow-auto "
           content={` 
-            <div class='w-full h-[450px] bg-gray-100 dark:bg-gray-700 rounded-lg p-4 overflow-auto'>
               <h2 class='text-lg font-semibold mb-4'>Description</h2>
               <ul class='space-y-2 text-gray-700 dark:text-gray-200'>
                 <li><strong>Full Name:</strong> ${submittedData.fullname}</li>
@@ -211,8 +211,7 @@
                 <li><strong>Tone:</strong> ${submittedData.tone}</li>
                 <li><strong>Goal:</strong> ${submittedData.goal}</li>
               </ul>
-            </div>
-          `}
+           `}
           onUpdate={handleEditorUpdate}
         />
       </Card.Content>

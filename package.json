@@ -12,7 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
-		"@internationalized/date": "^3.9.0",
+		"@internationalized/date": "^3.4.3",
 		"@lucide/svelte": "^0.544.0",
 		"@sveltejs/adapter-auto": "^6.0.0",
 		"@sveltejs/kit": "^2.22.0",
@@ -38,9 +38,12 @@
 		"@tailwindcss/typography": "^0.5.16",
 		"@tiptap/core": "^3.4.3",
 		"@tiptap/extension-bubble-menu": "^3.4.3",
+		"@tiptap/extension-code": "^3.4.3",
+		"@tiptap/extension-underline": "^3.4.3",
 		"@tiptap/pm": "^3.4.3",
 		"@tiptap/starter-kit": "^3.4.3",
 		"cohere-ai": "^7.19.0",
-		"mode-watcher": "^1.1.0"
+		"mode-watcher": "^1.1.0",
+		"tippy.js": "^6.3.7"
 	}
 }
