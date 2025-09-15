@@ -35,6 +35,12 @@
 		]
 	},
 	"dependencies": {
+		"@tailwindcss/typography": "^0.5.16",
+		"@tiptap/core": "^3.4.3",
+		"@tiptap/extension-bubble-menu": "^3.4.3",
+		"@tiptap/pm": "^3.4.3",
+		"@tiptap/starter-kit": "^3.4.3",
+		"cohere-ai": "^7.19.0",
 		"mode-watcher": "^1.1.0"
 	}
 }

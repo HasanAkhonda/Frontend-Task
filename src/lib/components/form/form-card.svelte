@@ -3,119 +3,221 @@
   import { Label } from "$lib/components/ui/label/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
+  import { fly } from "svelte/transition";
+  import TiptapEditor from "$lib/components/editor/TiptapEditor.svelte";
+   import SunIcon from "@lucide/svelte/icons/sun";
+  import MoonIcon from "@lucide/svelte/icons/moon";
 
-  let bool = false;
-  const toggleSecondCard = () => {
-    bool = !bool;
+  import { toggleMode } from "mode-watcher";
+
+  // -----------------------------
+  // Local state
+  // -----------------------------
+  let editorContent = "";
+
+  function handleEditorUpdate(html: any) {
+    editorContent = html;
+    console.log("Editor content:", html);
+  }
+
+  let showSecondCard = false;
+
+  // Form data variables
+  let fullname = "";
+  let title = "";
+  let company = "";
+  let tags = "";
+  let tone = "";
+  let goal = "";
+
+  // Store submitted data separately
+  type SubmittedData = {
+    fullname: string;
+    title: string;
+    company: string;
+    tags: string;
+    tone: string;
+    goal: string;
+  };
+
+  let submittedData: SubmittedData | null = null;
+
+  // -----------------------------
+  // Handlers
+  // -----------------------------
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    submittedData = { fullname, title, company, tags, tone, goal };
+    console.log("Form Data:", submittedData);
+    showSecondCard = true;
   };
 </script>
 
-<div class="flex flex-col md:flex-row justify-center overflow-hidden mt-12 items-start md:items-center gap-10 p-4 bg-gray-200 dark:bg-background">
-  
-  <!-- First Card with smooth fade + slide-up -->
-  <Card.Root class="w-full max-w-lg flex flex-col justify-between px-8 py-8 shadow-lg rounded-lg h-[500px] fade-slide-up">
-    <!-- Logo -->
-    <div class="flex justify-center mb-6">
-      <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300">
-        <img
-          src="https://dummyimage.com/150x150/4f46e5/ffffff&text=Logo"
-          alt="Logo"
-          class="w-full h-full object-cover"
-        />
-      </div>
-    </div>
+<!-- ===========================
+     Layout Wrapper
+     =========================== -->
+<div
+  class="flex flex-col 
+         bg-slate-100 
+         dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')]  
+         bg-cover bg-center bg-no-repeat 
+         w-full h-screen 
+         md:flex-row justify-center items-center 
+         gap-10 px-4 md:px-0 my-auto"
+>
 
-    <Card.Content class="px-0 overflow-auto flex-1">
-      <form class="flex flex-col gap-6">
-        <!-- Row 1: Full Name + Title -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-          <div class="flex flex-col gap-2">
-            <Label for="fullname">Full Name</Label>
-            <Input id="fullname" type="text" placeholder="Enter full name" required class="w-full px-3 py-2"/>
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="title">Title</Label>
-            <Input id="title" type="text" placeholder="Enter title" required class="w-full px-3 py-2"/>
-          </div>
-        </div>
 
-        <!-- Row 2: Company + Tags -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-          <div class="flex flex-col gap-2">
-            <Label for="company">Company</Label>
-            <Input id="company" type="text" placeholder="Enter company" required class="w-full px-3 py-2"/>
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="tags">Tags</Label>
-            <Input id="tags" type="text" placeholder="Enter tags" required class="w-full px-3 py-2"/>
-          </div>
-        </div>
 
-        <!-- Row 3: Tone + Goal -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-          <div class="flex flex-col gap-2">
-            <Label for="tone">Tone</Label>
-            <Input id="tone" type="text" placeholder="Enter tone" required class="w-full px-3 py-2"/>
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="goal">Goal</Label>
-            <Input id="goal" type="text" placeholder="Enter goal" required class="w-full px-3 py-2"/>
-          </div>
-        </div>
-      </form>
-    </Card.Content>
 
-    <Card.Footer class="flex flex-col gap-2 mt-6">
-      <Button type="button" class="w-full" onclick={toggleSecondCard}>Submit</Button>
-    </Card.Footer>
-  </Card.Root>
+  <!-- ===========================
+       First Card (Form)
+       =========================== -->
+  <Card.Root
+    class="w-full max-w-lg flex flex-col px-8 py-8 shadow-xl rounded-2xl h-[520px] bg-white dark:bg-gray-900"
+  >
+    <!-- Title -->
+    <div class="relative w-full flex justify-center items-center mb-6">
+  <!-- Center Title -->
+  <h1
+    class="text-3xl font-extrabold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+  >
+    MagicMind
+  </h1>
 
-  <!-- Second Card: conditional -->
-  {#if bool}
-    <Card.Root class="fade-slide-left w-full max-w-lg flex flex-col justify-between px-8 py-8 shadow-lg rounded-lg h-[500px]">
-      <Card.Content class="px-0 flex-1">
-        <div class="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg p-4 overflow-auto">
-          <h2 class="text-lg font-semibold mb-2">Description</h2>
-          <p class="text-gray-700 dark:text-gray-200">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-            Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-          </p>
-          <p class="mt-2 text-gray-700 dark:text-gray-200">
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-          </p>
-        </div>
-      </Card.Content>
-    </Card.Root>
-  {/if}
+  <!-- Theme Button (top-right) -->
+  <div class="absolute -right-6 -top-6">
+    <Button onclick={toggleMode} variant="ghost" size="icon">
+      <SunIcon
+        class="h-[1rem] w-[1.rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"
+      />
+      <MoonIcon
+        class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
+      />
+      <span class="sr-only">Toggle theme</span>
+    </Button>
+  </div>
 </div>
 
-<style>
-/* Smooth fade + slide-up for first card */
-.fade-slide-up {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeSlideUp 0.8s ease forwards;
-}
 
-@keyframes fadeSlideUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+    <!-- Form -->
+    <Card.Content class="flex-1 overflow-auto px-0 ">
+      
+      <form class="flex flex-col gap-4 space-y-1" on:submit={handleSubmit}>
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="fullname">Full Name</Label>
+            <Input
+              id="fullname"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter full name"
+              required
+              bind:value={fullname}
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="title">Title</Label>
+            <Input
+              id="title"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter title"
+              required
+              bind:value={title}
+            />
+          </div>
+        </div>
 
-/* Smooth fade + slide-left for second card */
-.fade-slide-left {
-  opacity: 0;
-  transform: translateX(50px);
-  animation: fadeSlideLeft 0.6s ease forwards;
-}
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="company">Company</Label>
+            <Input
+              id="company"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter company"
+              required
+              bind:value={company}
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="tags">Tags</Label>
+            <Input
+              id="tags"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter tags"
+              required
+              bind:value={tags}
+            />
+          </div>
+        </div>
 
-@keyframes fadeSlideLeft {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-</style>
+        <!-- Row 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="tone">Tone</Label>
+            <Input
+              id="tone"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter tone"
+              required
+              bind:value={tone}
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label class='text-md text-gray-600 dark:text-gray-300' for="goal">Goal</Label>
+            <Input
+              id="goal"
+              type="text"
+              class="py-6 placeholder:text-[16px]"
+              placeholder="Enter goal"
+              required
+              bind:value={goal}
+            />
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <Card.Footer class="flex flex-col gap-2 mt-4 px-0 ">
+          <Button type="submit" class="w-full py-6 font-semibold text-lg">
+            Generate
+          </Button>
+        </Card.Footer>
+      </form>
+    </Card.Content>
+  </Card.Root>
+<!-- ===========================
+     Second Card (Editor)
+     =========================== -->
+{#if showSecondCard && submittedData}
+  <div in:fly={{ x: 400, duration: 800 }} out:fly={{ x: 400, duration: 800 }}  class="w-full max-w-lg ">
+    <Card.Root
+      class="flex-col px-8 py-8 shadow-xl rounded-2xl h-[520px] bg-white dark:bg-gray-900"
+    >
+      <Card.Content class="px-0 flex-1 w-full max-w-2xl">
+        <TiptapEditor
+          content={` 
+            <div class='w-full h-[450px] bg-gray-100 dark:bg-gray-700 rounded-lg p-4 overflow-auto'>
+              <h2 class='text-lg font-semibold mb-4'>Description</h2>
+              <ul class='space-y-2 text-gray-700 dark:text-gray-200'>
+                <li><strong>Full Name:</strong> ${submittedData.fullname}</li>
+                <li><strong>Title:</strong> ${submittedData.title}</li>
+                <li><strong>Company:</strong> ${submittedData.company}</li>
+                <li><strong>Tags:</strong> ${submittedData.tags}</li>
+                <li><strong>Tone:</strong> ${submittedData.tone}</li>
+                <li><strong>Goal:</strong> ${submittedData.goal}</li>
+              </ul>
+            </div>
+          `}
+          onUpdate={handleEditorUpdate}
+        />
+      </Card.Content>
+    </Card.Root>
+  </div>
+{/if}
+
+</div>
