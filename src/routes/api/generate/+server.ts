@@ -1,6 +1,6 @@
 // src/routes/api/generate/+server.ts
 import type { RequestHandler } from './$types';
-import { COHERE_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private'; // runtime safe
 
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
@@ -22,7 +22,7 @@ Generate 1-2 paragraphs in a human-like style.
     const response = await fetch('https://api.cohere.ai/v1/chat', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${COHERE_API_KEY}`,
+        'Authorization': `Bearer ${env.COHERE_API_KEY}`, // safe at runtime
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
