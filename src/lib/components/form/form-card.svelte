@@ -89,6 +89,7 @@
     e.preventDefault();
 
     submittedData = { fullname, title, company, tags, tone, goal };
+     console.log("Form Data:", submittedData);
     showSecondCard = true;
     loadingAI = true; // show loader immediately
 
@@ -129,6 +130,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
       });
 
       const result = await response.json();
+      console.log("AI Response:", result);
       const aiText = result?.message?.content?.[0]?.text ?? "No AI text returned";
 
       editorContent = formatAIContent(aiText);
