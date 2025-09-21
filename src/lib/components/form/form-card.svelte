@@ -7,14 +7,37 @@
   import TiptapEditor from "$lib/components/editor/TiptapEditor.svelte";
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
-
   import { toggleMode } from "mode-watcher";
 
   // -----------------------------
   // Local state
   // -----------------------------
   let editorContent = "";
+  let showSecondCard = false;
+  let loadingAI = false;
 
+  // Form data variables
+  let fullname = "";
+  let title = "";
+  let company = "";
+  let tags = "";
+  let tone = "";
+  let goal = "";
+
+  type SubmittedData = {
+    fullname: string;
+    title: string;
+    company: string;
+    tags: string;
+    tone: string;
+    goal: string;
+  };
+
+  let submittedData: SubmittedData | null = null;
+
+  // -----------------------------
+  // Format AI response into HTML
+  // -----------------------------
   function formatAIContent(aiText: string): string {
     if (!aiText) {
       return `<p class="text-gray-500 italic">No AI-generated content available</p>`;
@@ -59,62 +82,20 @@
     return bodyLines.join("\n");
   }
 
-  // function formatAIContent(aiText: string) {
-  //     // Split the first line (heading) and the rest (paragraph)
-  //     const lines = aiText.split("**").filter(Boolean); // remove empty lines
-  //     const heading = lines[0] || "Generated Description";
-  //     const paragraph = lines.slice(1).join("<br>"); // join remaining lines
-
-  //     // Return HTML string
-  //     return `
-  //     <h2 class="text-lg font-semibold mb-4">${heading}</h2>
-  //     <p class="text-gray-700 dark:text-gray-200">${paragraph}</p>
-  //   `;
-  //   }
-
-  function handleEditorUpdate(html: any) {
-    editorContent = html;
-    console.log("Editor content:", html);
-  }
-
-  let showSecondCard = false;
-
-  // Form data variables
-  let fullname = "";
-  let title = "";
-  let company = "";
-  let tags = "";
-  let tone = "";
-  let goal = "";
-
-  // Store submitted data separately
-  type SubmittedData = {
-    fullname: string;
-    title: string;
-    company: string;
-    tags: string;
-    tone: string;
-    goal: string;
-  };
-
-  let submittedData: SubmittedData | null = null;
-
   // -----------------------------
-  // Handlers
+  // Form submit handler
   // -----------------------------
   async function handleSubmit(e: Event) {
     e.preventDefault();
 
     submittedData = { fullname, title, company, tags, tone, goal };
-    console.log("Form Data:", submittedData);
-
     showSecondCard = true;
+    loadingAI = true; // show loader immediately
 
-    // Build prompt dynamically
+    // Build AI prompt dynamically
     const prompt = `
 You are a professional AI writing assistant.
-Generate a detailed, human-like professional bio using the following user info. 
-The bio should feel authentic, well-structured, and suitable for professional use (portfolio, LinkedIn, company website).
+Generate a detailed, human-like professional bio using the following user info.
 
 Full Name: ${fullname}
 Title: ${title}
@@ -143,34 +124,25 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         body: JSON.stringify({
           stream: false,
           model: "command-a-03-2025",
-          messages: [
-            {
-              role: "user",
-              content: prompt, // <-- send dynamic prompt
-            },
-          ],
+          messages: [{ role: "user", content: prompt }],
         }),
       });
 
       const result = await response.json();
-      console.log("AI Response:", result);
-      // Check if response has the expected structure
-      if (result?.message?.content?.length > 0) {
-        const aiText = result.message.content[0].text;
-        console.log("AI Generated Text:", aiText);
+      const aiText = result?.message?.content?.[0]?.text ?? "No AI text returned";
 
-        // Assign to editor content
-        editorContent = formatAIContent(aiText);
-      } else {
-        console.log("No AI text returned");
-        editorContent = "No AI text returned";
-      }
+      editorContent = formatAIContent(aiText);
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error("Error fetching AI response:", err);
       editorContent = "Error fetching AI response";
+    } finally {
+      loadingAI = false; // hide loader after content is ready
     }
   }
 
+  // -----------------------------
+  // Reset form
+  // -----------------------------
   function handleReset() {
     fullname = "";
     title = "";
@@ -185,10 +157,13 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
 
 <!-- ===========================
      Layout Wrapper
-     =========================== -->
+=========================== -->
 <div
   class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-full h-screen md:flex-row justify-center items-center gap-10 px-4 md:px-0 my-auto"
 >
+  <!-- ===========================
+       First Card (Form)
+  ============================ -->
   <Card.Root
     class="w-full max-w-lg flex flex-col px-8 py-8 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900"
   >
@@ -200,139 +175,76 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
       </h1>
       <div class="absolute -right-6 -top-6">
         <Button onclick={toggleMode} variant="ghost" size="icon">
-          <SunIcon
-            class="h-[1rem] w-[1.rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"
-          />
-          <MoonIcon
-            class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
-          />
+          <SunIcon class="h-[1rem] w-[1rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"/>
+          <MoonIcon class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"/>
           <span class="sr-only">Toggle theme</span>
         </Button>
       </div>
     </div>
 
-    <Card.Content class="flex-1 overflow-auto px-0 ">
-      <form class="flex flex-col gap-4 space-y-1" on:submit={handleSubmit}>
+    <Card.Content class="flex-1 overflow-auto px-0">
+      <form class="flex flex-col gap-4" on:submit={handleSubmit}>
+        <!-- Grid: Full Name & Title -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label
-              class="text-gray-500 dark:text-gray-300 text-md"
-              for="fullname">Full Name</Label
-            >
-            <Input
-              class="py-5.5 placeholder:text-md text-md "
-              id="fullname"
-              type="text"
-              placeholder="John Doe"
-              required
-              bind:value={fullname}
-            />
+            <Label for="fullname" class="text-gray-500 dark:text-gray-300 text-md">Full Name</Label>
+            <Input id="fullname" type="text" placeholder="John Doe" required bind:value={fullname} class="py-5.5 text-md"/>
           </div>
           <div class="flex flex-col gap-2">
-            <Label class="text-gray-500 dark:text-gray-300 text-md" for="title"
-              >Title</Label
-            >
-            <Input
-              class="py-5.5 "
-              id="title"
-              type="text"
-              placeholder="Frontend Engineer"
-              required
-              bind:value={title}
-            />
+            <Label for="title" class="text-gray-500 dark:text-gray-300 text-md">Title</Label>
+            <Input id="title" type="text" placeholder="Frontend Engineer" required bind:value={title} class="py-5.5"/>
           </div>
         </div>
 
+        <!-- Grid: Company & Tags -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label
-              class="text-gray-500 dark:text-gray-300 text-md"
-              for="company">Company</Label
-            >
-            <Input
-              class="py-5.5 "
-              id="company"
-              type="text"
-              placeholder="MagicMind Inc."
-              required
-              bind:value={company}
-            />
+            <Label for="company" class="text-gray-500 dark:text-gray-300 text-md">Company</Label>
+            <Input id="company" type="text" placeholder="MagicMind Inc." required bind:value={company} class="py-5.5"/>
           </div>
           <div class="flex flex-col gap-2">
-            <Label class="text-gray-500 dark:text-gray-300 text-md" for="tags"
-              >Tags</Label
-            >
-            <Input
-              class="py-5.5 "
-              id="tags"
-              type="text"
-              placeholder="Frontend, UI/UX, React"
-              required
-              bind:value={tags}
-            />
+            <Label for="tags" class="text-gray-500 dark:text-gray-300 text-md">Tags</Label>
+            <Input id="tags" type="text" placeholder="Frontend, UI/UX, React" required bind:value={tags} class="py-5.5"/>
           </div>
         </div>
 
+        <!-- Grid: Tone & Goal -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label class="text-gray-500 dark:text-gray-300 text-md" for="tone"
-              >Tone</Label
-            >
-            <Input
-              class="py-5.5 "
-              id="tone"
-              type="text"
-              placeholder="Professional and approachable"
-              required
-              bind:value={tone}
-            />
+            <Label for="tone" class="text-gray-500 dark:text-gray-300 text-md">Tone</Label>
+            <Input id="tone" type="text" placeholder="Professional and approachable" required bind:value={tone} class="py-5.5"/>
           </div>
           <div class="flex flex-col gap-2">
-            <Label class="text-gray-500 dark:text-gray-300 text-md" for="goal"
-              >Goal</Label
-            >
-            <Input
-              class="py-5.5 "
-              id="goal"
-              type="text"
-              placeholder="Create a detailed professional bio"
-              required
-              bind:value={goal}
-            />
+            <Label for="goal" class="text-gray-500 dark:text-gray-300 text-md">Goal</Label>
+            <Input id="goal" type="text" placeholder="Create a detailed professional bio" required bind:value={goal} class="py-5.5"/>
           </div>
         </div>
 
+        <!-- Buttons -->
         <Card.Footer class="flex flex-row gap-4 mt-4 px-0">
-          <Button
-            type="button"
-            onclick={handleReset}
-            class="flex-1 py-6 font-semibold text-lg bg-gradient-to-br from-blue-400 via-blue-400 to-teal-500"
-          >
-            Reset
-          </Button>
-          <Button
-            type="submit"
-            class="flex-1 py-6 font-semibold text-lg bg-gradient-to-br from-red-400 via-35% to-blue-500"
-          >
-            Generate
-          </Button>
+          <Button type="button" onclick={handleReset} class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900">Reset</Button>
+          <Button type="submit" class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800">Generate</Button>
         </Card.Footer>
       </form>
     </Card.Content>
   </Card.Root>
+
+  <!-- ===========================
+       Second Card (AI Content)
+  ============================ -->
   {#if showSecondCard}
-    <div
-      in:fly={{ x: 400, duration: 800 }}
-      out:fly={{ x: 400, duration: 800 }}
-      class="w-full max-w-lg"
-    >
-      <Card.Root
-        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900"
-      >
-        <Card.Content
-          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl z-50 overflow-y-auto hide-scrollbar"
-        >
-          <TiptapEditor content={editorContent} />
+    <div in:fly={{ x: 400, duration: 800 }} out:fly={{ x: 400, duration: 800 }} class="w-full max-w-lg">
+      <Card.Root class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900">
+        <Card.Content class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl z-50 overflow-y-auto hide-scrollbar">
+          {#if loadingAI}
+            <!-- Loader -->
+            <div class="flex justify-center items-center h-full">
+              <span class="loader"></span>
+            </div>
+          {:else}
+            <!-- AI-generated content -->
+            <TiptapEditor content={editorContent} />
+          {/if}
         </Card.Content>
       </Card.Root>
     </div>
@@ -344,7 +256,21 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     width: -webkit-fill-available;
     position: relative;
     border: none;
-    padding: 0px;
+    padding: 0;
     outline: none;
+  }
+
+  /* Loader animation */
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>

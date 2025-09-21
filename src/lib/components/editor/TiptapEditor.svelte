@@ -56,17 +56,44 @@
   // -----------------------------
   // Typewriter effect for content
   // -----------------------------
-  async function typeContent(fullText: string, speed = 20) {
-    if (!editor) return;
-    editor.commands.clearContent(); // Clear previous content
-    let current = "";
 
-    for (let i = 0; i < fullText.length; i++) {
-      current += fullText[i];
-      editor.commands.setContent(current);
-      await new Promise((resolve) => setTimeout(resolve, speed));
-    }
+
+
+async function typeContent(fullText: string, speed = 30) {
+  if (!editor) return;
+
+  const MAX_DURATION = 30_000; // 30 seconds in ms
+  const minSpeed = 5; // lower bound so it doesn't get too fast
+
+  // Dynamically calculate speed so typing finishes in <= 90s
+  let dynamicSpeed = Math.floor(MAX_DURATION / fullText.length);
+  if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
+  if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too fast
+
+  editor.commands.clearContent(); // Clear previous content
+  let current = "";
+
+  for (let i = 0; i < fullText.length; i++) {
+    current += fullText[i];
+    editor.commands.setContent(current);
+    await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
   }
+}
+
+
+
+
+  // async function typeContent(fullText: string, speed = 30) {
+  //   if (!editor) return;
+  //   editor.commands.clearContent(); // Clear previous content
+  //   let current = "";
+
+  //   for (let i = 0; i < fullText.length; i++) {
+  //     current += fullText[i];
+  //     editor.commands.setContent(current);
+  //     await new Promise((resolve) => setTimeout(resolve, speed));
+  //   }
+  // }
 
   // -----------------------------
   // Initialize editor
