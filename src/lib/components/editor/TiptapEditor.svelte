@@ -6,15 +6,23 @@
   import Underline from "@tiptap/extension-underline";
   import Highlight from "@tiptap/extension-highlight";
   import CodeBlock from "@tiptap/extension-code-block";
-  import { Bold, Italic, Type, Code, Highlighter, TypeIcon,UnderlineIcon } from "lucide-svelte";
-  import type { Level } from '@tiptap/extension-heading'
+  import {
+    Bold,
+    Italic,
+    Type,
+    Code,
+    Highlighter,
+    TypeIcon,
+    UnderlineIcon,
+  } from "lucide-svelte";
+  import type { Level } from "@tiptap/extension-heading";
 
   // -----------------------------
   // References to DOM elements
   // -----------------------------
   let element: HTMLDivElement; // Editor container
-  let bubbleMenu: HTMLElement;  // Bubble menu container
-  let editor: Editor;           // Tiptap Editor instance
+  let bubbleMenu: HTMLElement; // Bubble menu container
+  let editor: Editor; // Tiptap Editor instance
 
   export let content: string = " "; // Initial content
 
@@ -26,7 +34,7 @@
   let isUnderline = false;
   let isHighlight = false;
   let isCode = false;
-  let currentHeading:string | number | [] | any= 0; // 0 = normal, 1 = H1, 2 = H2, 3 = H3
+  let currentHeading: string | number | [] | any = 0; // 0 = normal, 1 = H1, 2 = H2, 3 = H3
 
   // -----------------------------
   // Bubble menu position and visibility
@@ -57,31 +65,26 @@
   // Typewriter effect for content
   // -----------------------------
 
+  async function typeContent(fullText: string, speed = 30) {
+    if (!editor) return;
 
+    const MAX_DURATION = 5_000; // 30 seconds in ms
+    const minSpeed = 5; // lower bound so it doesn't get too fast
 
-async function typeContent(fullText: string, speed = 30) {
-  if (!editor) return;
+    // Dynamically calculate speed so typing finishes in <= 90s
+    let dynamicSpeed = Math.floor(MAX_DURATION / fullText.length);
+    if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
+    if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too fast
 
-  const MAX_DURATION = 30_000; // 30 seconds in ms
-  const minSpeed = 5; // lower bound so it doesn't get too fast
+    editor.commands.clearContent(); // Clear previous content
+    let current = "";
 
-  // Dynamically calculate speed so typing finishes in <= 90s
-  let dynamicSpeed = Math.floor(MAX_DURATION / fullText.length);
-  if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
-  if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too fast
-
-  editor.commands.clearContent(); // Clear previous content
-  let current = "";
-
-  for (let i = 0; i < fullText.length; i++) {
-    current += fullText[i];
-    editor.commands.setContent(current);
-    await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
+    for (let i = 0; i < fullText.length; i++) {
+      current += fullText[i];
+      editor.commands.setContent(current);
+      await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
+    }
   }
-}
-
-
-
 
   // async function typeContent(fullText: string, speed = 30) {
   //   if (!editor) return;
@@ -102,11 +105,11 @@ async function typeContent(fullText: string, speed = 30) {
     editor = new Editor({
       element,
       extensions: [
-        StarterKit,                 // Basic formatting (paragraphs, bold, italic, etc.)
+        StarterKit, // Basic formatting (paragraphs, bold, italic, etc.)
         Heading.configure({ levels: [1, 2, 3] }), // Headings
-        Underline,                  // Underline extension
-        Highlight,                  // Highlight extension
-        CodeBlock                   // Code block extension
+        Underline, // Underline extension
+        Highlight, // Highlight extension
+        CodeBlock, // Code block extension
       ],
       content,
       onUpdate: updateActiveStyles, // Update active styles on content change
@@ -120,12 +123,15 @@ async function typeContent(fullText: string, speed = 30) {
       const { from, to } = editor.state.selection;
 
       // Show menu only if text is selected
-      if (from !== to && (from !== lastSelection.from || to !== lastSelection.to)) {
+      if (
+        from !== to &&
+        (from !== lastSelection.from || to !== lastSelection.to)
+      ) {
         const domSelection = window.getSelection();
         if (domSelection && domSelection.rangeCount > 0) {
           const rect = domSelection.getRangeAt(0).getBoundingClientRect();
           menuX = rect.left + rect.width / 2; // Center horizontally
-          menuY = rect.top - 10;              // Position slightly above selection
+          menuY = rect.top - 10; // Position slightly above selection
           showMenu = true;
         }
       } else if (from === to) {
@@ -171,7 +177,7 @@ async function typeContent(fullText: string, speed = 30) {
   // -----------------------------
 
   function setHeading(level: string) {
-    const lvl = parseInt(level) as 0| 1 | 2 | 3;
+    const lvl = parseInt(level) as 0 | 1 | 2 | 3;
     if (lvl === 0) {
       editor.chain().focus().setParagraph().run(); // Normal text
     } else {
@@ -182,17 +188,96 @@ async function typeContent(fullText: string, speed = 30) {
 
   // Keep dropdown in sync with editor selection
   function updateHeadingState() {
-    if (editor.isActive('heading', { level: 1 })) currentHeading = "1";
-    else if (editor.isActive('heading', { level: 2 })) currentHeading = "2";
-    else if (editor.isActive('heading', { level: 3 })) currentHeading = "3";
+    if (editor.isActive("heading", { level: 1 })) currentHeading = "1";
+    else if (editor.isActive("heading", { level: 2 })) currentHeading = "2";
+    else if (editor.isActive("heading", { level: 3 })) currentHeading = "3";
     else currentHeading = "0"; // Normal text
   }
 
+  // -----------------------------
+  // duplicate on mount
+  // -----------------------------
+
   onMount(() => {
-    editor.on('selectionUpdate', updateHeadingState);
+    editor.on("selectionUpdate", updateHeadingState);
     updateHeadingState(); // Initial sync
   });
 
+  // -----------------------------
+  // selection re generate function
+  // -----------------------------
+  let regenerating = false;
+
+  async function regenerateSelection() {
+    if (!editor) return;
+
+    // Get selected text
+    const selectedText = editor.state.doc.textBetween(
+      editor.state.selection.from,
+      editor.state.selection.to,
+      " "
+    );
+
+    if (!selectedText.trim()) return;
+
+    // Ask user for extra instructions
+    const userPrompt = prompt(
+      "How should I regenerate this text? (e.g. 'Make it formal', 'Summarize it')"
+    );
+    if (!userPrompt) return;
+
+    regenerating = true;
+
+    try {
+      // Same API call as in handleSubmit
+      const response = await fetch("https://api.cohere.com/v2/chat", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer LFMqJFwwN3t5H8pzBk7n1EYAdyySC9nYcFuJN0cA",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          stream: false,
+          model: "command-a-03-2025",
+          messages: [
+            {
+              role: "user",
+              content: `You are an AI writing assistant. 
+Rewrite the following text according to the instruction, 
+but do not make it longer than 2 lines more than the original. 
+Keep the meaning clear, concise, and natural.
+
+Instruction: ${userPrompt}
+Text to rewrite:
+${selectedText}`,
+            },
+          ],
+        }),
+      });
+
+      const result = await response.json();
+      const regenerated = result?.message?.content?.[0]?.text ?? "";
+
+      if (regenerated) {
+        // Replace selected text with regenerated version
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            {
+              from: editor.state.selection.from,
+              to: editor.state.selection.to,
+            },
+            regenerated
+          )
+          .run();
+      }
+    } catch (err) {
+      console.error("Error regenerating text:", err);
+    } finally {
+      regenerating = false;
+    }
+  }
 </script>
 
 <div class="editor-wrapper relative rounded-2xl">
@@ -204,44 +289,70 @@ async function typeContent(fullText: string, speed = 30) {
       style="position: fixed; top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
     >
       <!-- Bold -->
-      <button on:click={() => editor.chain().focus().toggleBold().run()} class:active={isBold} title="Bold">
+      <button
+        on:click={() => editor.chain().focus().toggleBold().run()}
+        class:active={isBold}
+        title="Bold"
+      >
         <Bold size={16} />
       </button>
 
       <!-- Italic -->
-      <button on:click={() => editor.chain().focus().toggleItalic().run()} class:active={isItalic} title="Italic">
+      <button
+        on:click={() => editor.chain().focus().toggleItalic().run()}
+        class:active={isItalic}
+        title="Italic"
+      >
         <Italic size={16} />
       </button>
 
       <!-- Underline -->
-      <button on:click={() => editor.chain().focus().toggleUnderline().run()} class:active={isUnderline} title="Underline">
+      <button
+        on:click={() => editor.chain().focus().toggleUnderline().run()}
+        class:active={isUnderline}
+        title="Underline"
+      >
         <UnderlineIcon size={16} />
-
       </button>
 
       <!-- Highlight -->
-      <button on:click={() => editor.chain().focus().toggleHighlight().run()} class:active={isHighlight} title="Highlight">
+      <button
+        on:click={() => editor.chain().focus().toggleHighlight().run()}
+        class:active={isHighlight}
+        title="Highlight"
+      >
         <Highlighter size={16} />
       </button>
 
       <!-- Code Block -->
-      <button on:click={() => editor.chain().focus().toggleCodeBlock().run()} class:active={isCode} title="Code Block">
+      <button
+        on:click={() => editor.chain().focus().toggleCodeBlock().run()}
+        class:active={isCode}
+        title="Code Block"
+      >
         <Code size={16} />
       </button>
 
       <!-- Heading Dropdown -->
-    <select
-  class="heading-dropdown font-semibold text-xl"
-  bind:value={currentHeading}
-  on:change={(e:any) => setHeading(e.target.value)}
->
-  <option value="0" class="font-semibold text-[12px]">P
-</option>
-  <option value="1" class="font-semibold text-[16px]">h1</option>
-  <option value="2" class="font-semibold text-[14px]">h2</option>
-  <option value="3" class="font-semibold text-[12px]">h3</option>
-</select>
+      <select
+        class="heading-dropdown font-semibold text-xl"
+        bind:value={currentHeading}
+        on:change={(e: any) => setHeading(e.target.value)}
+      >
+        <option value="0" class="font-semibold text-[12px]">P </option>
+        <option value="1" class="font-semibold text-[16px]">h1</option>
+        <option value="2" class="font-semibold text-[14px]">h2</option>
+        <option value="3" class="font-semibold text-[12px]">h3</option>
+      </select>
 
+      <!-- AI Regenerate -->
+      <button on:click={regenerateSelection} disabled={regenerating}>
+        {#if regenerating}
+          ⏳
+        {:else}
+          ♻️
+        {/if}
+      </button>
     </div>
   {/if}
 
@@ -250,31 +361,62 @@ async function typeContent(fullText: string, speed = 30) {
 </div>
 
 <style>
-  .editor-wrapper { position: relative; max-width: 700px; }
-  .editor { border: none; padding: 1rem; outline: none; min-height: 200px; }
+  .editor-wrapper {
+    position: relative;
+    max-width: 700px;
+  }
+  .editor {
+    border: none;
+    padding: 1rem;
+    outline: none;
+    min-height: 200px;
+  }
 
   /* Bubble menu styling (compact icon size) */
   .bubble-menu {
-    display: flex; gap: 4px;
-    background: #e9ebf1; border-radius: 24px;
-    padding: 4px; font-size: 12px;
-    pointer-events: auto; box-shadow: 0 2px 8px rgba(16, 118, 182, 0.3);
+    display: flex;
+    gap: 4px;
+    background: #e9ebf1;
+    border-radius: 24px;
+    padding: 4px;
+    font-size: 12px;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(16, 118, 182, 0.3);
     z-index: 9999;
   }
 
   .bubble-menu button {
-    background: transparent; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 2px; border-radius: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 4px;
     transition: background 0.2s;
   }
-  .bubble-menu button:hover { background: rgba(0,0,0,0.05); }
-  .bubble-menu button.active { background: white; color: black; }
-
-  .heading-dropdown {
-    font-size: 12px; padding: 2px 4px; border-radius: 4px;
-    border: 1px solid #ccc; background: white; cursor: pointer;
+  .bubble-menu button:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  .bubble-menu button.active {
+    background: white;
+    color: black;
   }
 
-  :global(.ProseMirror) { width: 100%; border: none; min-height: 200px; outline: none; }
+  .heading-dropdown {
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+  }
+
+  :global(.ProseMirror) {
+    width: 100%;
+    border: none;
+    min-height: 200px;
+    outline: none;
+  }
 </style>

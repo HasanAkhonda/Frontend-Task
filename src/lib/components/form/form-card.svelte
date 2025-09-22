@@ -106,7 +106,7 @@ Tone: ${tone}
 Goal: ${goal}
 
 Format:
-- A clear and professional Title/Heading with the full name and role.
+- A clear and professional Title/Heading with the full name and role .
 - Background & Expertise: A detailed overview of the person’s technical/professional skills, domain expertise, and areas of focus.
 - Approach & Philosophy: Describe how they approach work, design, problem-solving, or teamwork.
 - Collaboration & Values: Highlight soft skills, teamwork, and personality traits.
