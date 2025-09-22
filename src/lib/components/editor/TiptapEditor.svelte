@@ -194,15 +194,7 @@
     else currentHeading = "0"; // Normal text
   }
 
-  // -----------------------------
-  // duplicate on mount
-  // -----------------------------
-
-  onMount(() => {
-    editor.on("selectionUpdate", updateHeadingState);
-    updateHeadingState(); // Initial sync
-  });
-
+ 
   // -----------------------------
   // selection re generate function
   // -----------------------------
