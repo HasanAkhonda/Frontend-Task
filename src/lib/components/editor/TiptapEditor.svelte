@@ -74,6 +74,9 @@
         from !== to &&
         (from !== lastSelection.from || to !== lastSelection.to)
       ) {
+        highlightSelectionOnly();
+        updateBubbleMenuPosition();
+
         const domSelection = window.getSelection();
         if (domSelection && domSelection.rangeCount > 0) {
           const rect = domSelection.getRangeAt(0).getBoundingClientRect();
@@ -104,11 +107,66 @@
     };
     document.addEventListener("mousedown", handleClickOutside);
 
+    const handleScrollOrResize = () => {
+      if (showMenu) updateBubbleMenuPosition();
+    };
+
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+
     onDestroy(() => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+
       editor?.destroy();
     });
   });
+  // ======================================
+  // for highlight last selected portion
+  // ======================================
+  function highlightSelectionOnly() {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) return; // nothing selected
+
+    // Remove all previous highlights
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, state }) => {
+        tr.doc.descendants((node, pos) => {
+          if (node.marks.some((mark) => mark.type.name === "highlight")) {
+            tr.removeMark(
+              pos,
+              pos + node.nodeSize,
+              state.schema.marks.highlight
+            );
+          }
+        });
+        return true;
+      })
+      .run();
+
+    // Apply highlight to current selection
+    editor.chain().focus().setMark("highlight", { color: "" }).run();
+  }
+
+  // ======================================
+  // for calculating the positioning of bubble menu
+  // ======================================
+  function updateBubbleMenuPosition() {
+    const domSelection = window.getSelection();
+    if (domSelection && domSelection.rangeCount > 0) {
+      const rect = domSelection.getRangeAt(0).getBoundingClientRect();
+
+      menuX = rect.left + rect.width / 2 + window.scrollX;
+      menuY = rect.top + window.scrollY - 10; // small offset above text
+      showMenu = true;
+    } else {
+      showMenu = false;
+    }
+  }
 
   function setHeading(level: string) {
     const lvl = parseInt(level) as 0 | 1 | 2 | 3;
@@ -129,39 +187,38 @@
   //   updateHeadingState();
   // });
 
-  
-let abortController: AbortController | null = null;
+  let abortController: AbortController | null = null;
 
-async function regenerateSelection() {
-  if (!editor) return;
+  async function regenerateSelection() {
+    if (!editor) return;
 
-  const selectedText = editor.state.doc.textBetween(
-    editor.state.selection.from,
-    editor.state.selection.to,
-    " "
-  );
-  if (!selectedText.trim()) return;
+    const selectedText = editor.state.doc.textBetween(
+      editor.state.selection.from,
+      editor.state.selection.to,
+      " "
+    );
+    if (!selectedText.trim()) return;
 
-  regenerating = true;
+    regenerating = true;
 
-  // Create a new AbortController for this request
-  abortController = new AbortController();
-  const { signal } = abortController;
+    // Create a new AbortController for this request
+    abortController = new AbortController();
+    const { signal } = abortController;
 
-  try {
-    const response = await fetch("https://api.cohere.com/v2/chat", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer LFMqJFwwN3t5H8pzBk7n1EYAdyySC9nYcFuJN0cA",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        stream: false,
-        model: "command-a-03-2025",
-        messages: [
-          {
-            role: "user",
-            content: `You are an AI writing assistant. 
+    try {
+      const response = await fetch("https://api.cohere.com/v2/chat", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer LFMqJFwwN3t5H8pzBk7n1EYAdyySC9nYcFuJN0cA",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          stream: false,
+          model: "command-a-03-2025",
+          messages: [
+            {
+              role: "user",
+              content: `You are an AI writing assistant. 
 Rewrite the following text according to the instruction, 
 but do not make it longer than 2 lines more than the original. 
 Keep the meaning clear, concise, and natural. And most importantly keep the formatting intact. 
@@ -169,56 +226,55 @@ Keep the meaning clear, concise, and natural. And most importantly keep the form
 Instruction: ${userPrompt}
 Text to rewrite:
 ${selectedText}`,
-          },
-        ],
-      }),
-      signal, // attach abort signal
-    });
+            },
+          ],
+        }),
+        signal, // attach abort signal
+      });
 
-    const result = await response.json();
-    const regenerated = result?.message?.content?.[0]?.text ?? "";
+      const result = await response.json();
+      const regenerated = result?.message?.content?.[0]?.text ?? "";
 
-    if (regenerated) {
-      // Clear old selection first
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(
-          {
-            from: editor.state.selection.from,
-            to: editor.state.selection.to,
-          },
-          "" // clear
-        )
-        .run();
+      if (regenerated) {
+        // Clear old selection first
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            {
+              from: editor.state.selection.from,
+              to: editor.state.selection.to,
+            },
+            "" // clear
+          )
+          .run();
 
-      // Call typewriter effect
-      await typewriterInsert(regenerated, editor.state.selection.from);
+        // Call typewriter effect
+        await typewriterInsert(regenerated, editor.state.selection.from);
+      }
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        console.log("Regeneration aborted by user");
+      } else {
+        console.error("Error regenerating text:", err);
+      }
+    } finally {
+      regenerating = false;
+      showPromptInput = false;
+      userPrompt = "";
+      abortController = null;
     }
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      console.log("Regeneration aborted by user");
-    } else {
-      console.error("Error regenerating text:", err);
+  }
+
+  // Optional: Function to abort current generation
+  function cancelRegeneration() {
+    if (abortController) {
+      abortController.abort();
     }
-  } finally {
-    regenerating = false;
-    showPromptInput = false;
-    userPrompt = "";
-    abortController = null;
   }
-}
-
-// Optional: Function to abort current generation
-function cancelRegeneration() {
-  if (abortController) {
-    abortController.abort();
-  }
-}
-
 
   // old type writer for main Ai response
-  async function typeContent(fullText: string, speed = 30) {
+  async function typeContent(fullText: string, speed = 60) {
     if (!editor) return;
 
     const MAX_DURATION = 15_000; // 30 seconds in ms
@@ -238,6 +294,8 @@ function cancelRegeneration() {
       await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
     }
   }
+
+  // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
   $: if (editor && content) {
       typeContent(content);
@@ -263,12 +321,12 @@ function cancelRegeneration() {
   }
 </script>
 
-<div class="editor-wrapper relative rounded-2xl">
+<div class="editor-wrapper relative rounded-2xl overflow-hidden">
   {#if showMenu}
     <div
       bind:this={bubbleMenu}
-      class="bubble-menu dark:text-gray-900"
-      style="position: fixed; top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
+      class="bubble-menu dark:text-gray-900 z-11"
+      style= "position: fixed; top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
     >
       <button
         on:click={() => editor.chain().focus().toggleBold().run()}
@@ -294,13 +352,13 @@ function cancelRegeneration() {
         <UnderlineIcon size={16} />
       </button>
 
-      <button
+      <!-- <button
         on:click={() => editor.chain().focus().toggleHighlight().run()}
         class:active={isHighlight}
         title="Highlight"
       >
         <Highlighter size={16} />
-      </button>
+      </button> -->
 
       <button
         on:click={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -330,7 +388,7 @@ function cancelRegeneration() {
           {#if regenerating}
             <HourglassIcon
               size={18}
-              class="  spin"
+              class=" border-1 border-gray-800 p-0.5 rounded-full spin"
               style="animation: spin 1s linear infinite;"
             />
           {:else}
@@ -354,13 +412,15 @@ function cancelRegeneration() {
             <div class="flex justify-end gap-2">
               <button
                 class="text-xs px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                on:click={() => (showPromptInput = false, cancelRegeneration())}
+                on:click={() => (
+                  (showPromptInput = false), cancelRegeneration()
+                )}
               >
                 Cancel
               </button>
               <button
-                class={`text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition  ${regenerating ?  "text-green-800 bg-indigo-600 hover:none" :"text-green-600 bg-indigo-400" }`}
-                 on:click={regenerateSelection}
+                class={`text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition  ${regenerating ? "text-green-800 bg-indigo-600 hover:none" : "text-green-600 bg-indigo-400"}`}
+                on:click={regenerateSelection}
               >
                 {regenerating ? "Generating" : "Regenerate"}
               </button>
@@ -371,52 +431,11 @@ function cancelRegeneration() {
     </div>
   {/if}
 
-  <div bind:this={element} class="editor"></div>
+  <div bind:this={element} class="editor z-10"></div>
 </div>
 
 <style>
-  .editor-wrapper {
-    position: relative;
-    max-width: 700px;
-  }
-  .editor {
-    border: none;
-    padding: 1rem;
-    outline: none;
-    min-height: 200px;
-  }
-
-  .bubble-menu {
-    display: flex;
-    gap: 4px;
-    background: #e9ebf1;
-    border-radius: 24px;
-    padding: 4px;
-    font-size: 12px;
-    pointer-events: auto;
-    box-shadow: 0 2px 8px rgba(16, 118, 182, 0.3);
-    z-index: 9999;
-  }
-
-  .bubble-menu button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-    border-radius: 4px;
-    transition: background 0.2s;
-  }
-  .bubble-menu button:hover {
-    background: rgba(0, 0, 0, 0.05);
-  }
-  .bubble-menu button.active {
-    background: white;
-    color: black;
-  }
-
+  
   .heading-dropdown {
     font-size: 12px;
     padding: 2px 4px;

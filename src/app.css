@@ -188,3 +188,47 @@ border-radius: 10px;
       transform: rotate(360deg);
     }
   }
+
+  .editor-wrapper {
+    position: relative;
+    max-width: 700px;
+   }
+  .editor {
+    border: none;
+    padding: 1rem;
+    outline: none;
+    min-height: 200px;
+    position: relative;
+    max-width: 700px;
+   }
+
+  .bubble-menu {
+  position: absolute;
+    display: flex;
+    gap: 4px;
+    background: #e9ebf1;
+    border-radius: 24px;
+    padding: 4px;
+    font-size: 12px;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(16, 118, 182, 0.3);
+   }
+
+  .bubble-menu button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .bubble-menu button:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  .bubble-menu button.active {
+    background: white;
+    color: black;
+  }

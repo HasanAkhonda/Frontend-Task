@@ -285,13 +285,13 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     <div
       in:fly={{ x: 400, duration: 800 }}
       out:fly={{ x: 400, duration: 800 }}
-      class="w-full max-w-lg"
+      class="w-full  max-w-lg"
     >
       <Card.Root
-        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900"
+        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15   dark:bg-gray-900 "
       >
         <Card.Content
-          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl z-50 overflow-y-auto hide-scrollbar"
+          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  overflow-y-scroll hide-scrollbar"
         >
           {#if loadingAI}
             <!-- Loader -->
