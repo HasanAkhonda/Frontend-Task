@@ -8,7 +8,7 @@
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
   import { toggleMode } from "mode-watcher";
-
+  import { formatAIContent } from "$lib/utils/aiFormatter";
   // -----------------------------
   // Local state
   // -----------------------------
@@ -38,58 +38,22 @@
   // -----------------------------
   // Format AI response into HTML
   // -----------------------------
-  function formatAIContent(aiText: string): string {
-    if (!aiText) {
-      return `<p class="text-gray-500 italic">No AI-generated content available</p>`;
-    }
-
-    const lines = aiText.split(/\n/);
-
-    let isFirstHeading = true;
-
-    const bodyLines = lines.map((line) => {
-      let formatted = line.trim();
-      if (!formatted) return "<br/>";
-
-      // First heading (main title)
-      if (isFirstHeading && /^\*\*(.+)\*\*$/.test(formatted)) {
-        isFirstHeading = false;
-        const cleanHeading = formatted.replace(/^\*\*(.+)\*\*$/, "$1");
-        return `<h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-gray-100">${cleanHeading}</h1>`;
-      }
-
-      // Subheadings
-      if (/^\*\*(.+)\*\*$/.test(formatted)) {
-        const cleanHeading = formatted.replace(/^\*\*(.+)\*\*$/, "$1");
-        return `<h2 class="font-bold text-xl mt-6 mb-3 text-gray-900 dark:text-gray-100">${cleanHeading}</h2>`;
-      }
-
-      // Highlight job roles
-      formatted = formatted.replace(
-        /(Frontend Engineer|Backend Engineer|Full Stack Engineer|Designer|Developer|Manager|Engineer)/gi,
-        `<span class="font-semibold text-blue-600 dark:text-blue-400">$1</span>`
-      );
-
-      // Italicize company names after "at"
-      formatted = formatted.replace(
-        /\bat ([A-Z][A-Za-z0-9& ]+)/g,
-        `at <em>$1</em>`
-      );
-
-      return `<p class="leading-relaxed text-gray-800 dark:text-gray-200 mb-4">${formatted}</p>`;
-    });
-
-    return bodyLines.join("\n");
-  }
+ 
 
   // -----------------------------
   // Form submit handler
   // -----------------------------
+
+  let controller: AbortController | null = null;
+
   async function handleSubmit(e: Event) {
     e.preventDefault();
 
+    if (loadingAI) return; // prevent multiple clicks while loading
+
+     controller = new AbortController();
     submittedData = { fullname, title, company, tags, tone, goal };
-     console.log("Form Data:", submittedData);
+    console.log("Form Data:", submittedData);
     showSecondCard = true;
     loadingAI = true; // show loader immediately
 
@@ -127,25 +91,34 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
           model: "command-a-03-2025",
           messages: [{ role: "user", content: prompt }],
         }),
+          signal: controller.signal,
       });
 
       const result = await response.json();
       console.log("AI Response:", result);
-      const aiText = result?.message?.content?.[0]?.text ?? "No AI text returned";
+      const aiText =
+        result?.message?.content?.[0]?.text ?? "No AI text returned";
 
       editorContent = formatAIContent(aiText);
-    } catch (err) {
+    }  catch (err:any) {
+    if (err.name === "AbortError") {
+      console.log("Fetch aborted by reset.");
+    } else {
       console.error("Error fetching AI response:", err);
       editorContent = "Error fetching AI response";
-    } finally {
-      loadingAI = false; // hide loader after content is ready
     }
+  } finally {
+    loadingAI = false;
+  }
   }
 
   // -----------------------------
   // Reset form
   // -----------------------------
   function handleReset() {
+    if (controller) {
+    controller.abort(); // cancel fetch if running
+  }
     fullname = "";
     title = "";
     company = "";
@@ -154,7 +127,10 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     goal = "";
     editorContent = "";
     showSecondCard = false;
+    loadingAI = false; // hide loader after content is ready
+
   }
+  
 </script>
 
 <!-- ===========================
@@ -177,8 +153,12 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
       </h1>
       <div class="absolute -right-6 -top-6">
         <Button onclick={toggleMode} variant="ghost" size="icon">
-          <SunIcon class="h-[1rem] w-[1rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"/>
-          <MoonIcon class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"/>
+          <SunIcon
+            class="h-[1rem] w-[1rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"
+          />
+          <MoonIcon
+            class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
+          />
           <span class="sr-only">Toggle theme</span>
         </Button>
       </div>
@@ -189,43 +169,110 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         <!-- Grid: Full Name & Title -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label for="fullname" class="text-gray-500 dark:text-gray-300 text-md">Full Name</Label>
-            <Input id="fullname" type="text" placeholder="John Doe" required bind:value={fullname} class="py-5.5 text-md"/>
+            <Label
+              for="fullname"
+              class="text-gray-500 dark:text-gray-300 text-md">Full Name</Label
+            >
+            <Input
+              id="fullname"
+              type="text"
+              placeholder="John Doe"
+              required
+              bind:value={fullname}
+              class="py-5.5 text-md"
+            />
           </div>
           <div class="flex flex-col gap-2">
-            <Label for="title" class="text-gray-500 dark:text-gray-300 text-md">Title</Label>
-            <Input id="title" type="text" placeholder="Frontend Engineer" required bind:value={title} class="py-5.5"/>
+            <Label for="title" class="text-gray-500 dark:text-gray-300 text-md"
+              >Title</Label
+            >
+            <Input
+              id="title"
+              type="text"
+              placeholder="Frontend Engineer"
+              required
+              bind:value={title}
+              class="py-5.5"
+            />
           </div>
         </div>
 
         <!-- Grid: Company & Tags -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label for="company" class="text-gray-500 dark:text-gray-300 text-md">Company</Label>
-            <Input id="company" type="text" placeholder="MagicMind Inc." required bind:value={company} class="py-5.5"/>
+            <Label
+              for="company"
+              class="text-gray-500 dark:text-gray-300 text-md">Company</Label
+            >
+            <Input
+              id="company"
+              type="text"
+              placeholder="MagicMind Inc."
+              required
+              bind:value={company}
+              class="py-5.5"
+            />
           </div>
           <div class="flex flex-col gap-2">
-            <Label for="tags" class="text-gray-500 dark:text-gray-300 text-md">Tags</Label>
-            <Input id="tags" type="text" placeholder="Frontend, UI/UX, React" required bind:value={tags} class="py-5.5"/>
+            <Label for="tags" class="text-gray-500 dark:text-gray-300 text-md"
+              >Tags</Label
+            >
+            <Input
+              id="tags"
+              type="text"
+              placeholder="Frontend, UI/UX, React"
+              required
+              bind:value={tags}
+              class="py-5.5"
+            />
           </div>
         </div>
 
         <!-- Grid: Tone & Goal -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div class="flex flex-col gap-2">
-            <Label for="tone" class="text-gray-500 dark:text-gray-300 text-md">Tone</Label>
-            <Input id="tone" type="text" placeholder="Professional and approachable" required bind:value={tone} class="py-5.5"/>
+            <Label for="tone" class="text-gray-500 dark:text-gray-300 text-md"
+              >Tone</Label
+            >
+            <Input
+              id="tone"
+              type="text"
+              placeholder="Professional and approachable"
+              required
+              bind:value={tone}
+              class="py-5.5"
+            />
           </div>
           <div class="flex flex-col gap-2">
-            <Label for="goal" class="text-gray-500 dark:text-gray-300 text-md">Goal</Label>
-            <Input id="goal" type="text" placeholder="Create a detailed professional bio" required bind:value={goal} class="py-5.5"/>
+            <Label for="goal" class="text-gray-500 dark:text-gray-300 text-md"
+              >Goal</Label
+            >
+            <Input
+              id="goal"
+              type="text"
+              placeholder="Create a detailed professional bio"
+              required
+              bind:value={goal}
+              class="py-5.5"
+            />
           </div>
         </div>
 
         <!-- Buttons -->
         <Card.Footer class="flex flex-row gap-4 mt-4 px-0">
-          <Button type="button" onclick={handleReset} class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900">Reset</Button>
-          <Button type="submit" class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800">Generate</Button>
+          <Button
+            type="button"
+            onclick={handleReset}
+            class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900"
+            >Reset</Button
+          >
+          <Button
+            type="submit"
+            disabled={loadingAI}
+            class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
+            >{loadingAI ? "Generating..." : "Generate"}</Button
+          >
+        
         </Card.Footer>
       </form>
     </Card.Content>
@@ -235,9 +282,17 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
        Second Card (AI Content)
   ============================ -->
   {#if showSecondCard}
-    <div in:fly={{ x: 400, duration: 800 }} out:fly={{ x: 400, duration: 800 }} class="w-full max-w-lg">
-      <Card.Root class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900">
-        <Card.Content class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl z-50 overflow-y-auto hide-scrollbar">
+    <div
+      in:fly={{ x: 400, duration: 800 }}
+      out:fly={{ x: 400, duration: 800 }}
+      class="w-full max-w-lg"
+    >
+      <Card.Root
+        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900"
+      >
+        <Card.Content
+          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl z-50 overflow-y-auto hide-scrollbar"
+        >
           {#if loadingAI}
             <!-- Loader -->
             <div class="flex justify-center items-center h-full">
@@ -272,7 +327,6 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+ 
 </style>
+

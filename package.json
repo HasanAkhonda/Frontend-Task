@@ -54,6 +54,8 @@
 		"cohere-ai": "^7.19.0",
 		"lucide-svelte": "^0.544.0",
 		"mode-watcher": "^1.1.0",
+		"prosemirror-state": "^1.4.3",
+		"prosemirror-view": "^1.41.1",
 		"tippy.js": "^6.3.7"
 	}
 }
