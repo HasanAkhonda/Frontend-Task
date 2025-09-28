@@ -177,12 +177,7 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
-.bubble-menu{
-background: black;
-border-radius: 10px;
-  padding: 10px;
-  
-}
+
  @keyframes spin {
     to {
       transform: rotate(360deg);
@@ -198,12 +193,12 @@ border-radius: 10px;
     padding: 1rem;
     outline: none;
     min-height: 200px;
-    position: relative;
-    max-width: 700px;
+     max-width: 700px;
    }
 
-  .bubble-menu {
-  position: absolute;
+  .bubble-menu { 
+    position: absolute;
+    z-index: 1000;
     display: flex;
     gap: 4px;
     background: #e9ebf1;
