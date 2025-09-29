@@ -36,11 +36,6 @@
   let submittedData: SubmittedData | null = null;
 
   // -----------------------------
-  // Format AI response into HTML
-  // -----------------------------
- 
-
-  // -----------------------------
   // Form submit handler
   // -----------------------------
 
@@ -137,13 +132,13 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
      Layout Wrapper
 =========================== -->
 <div
-  class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-full h-screen md:flex-row justify-center items-center gap-10 px-4 md:px-0 my-auto"
+  class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-screen overflow-hidden h-screen md:flex-row justify-center items-center gap-10 px-4 md:px-0 my-auto"
 >
   <!-- ===========================
        First Card (Form)
   ============================ -->
   <Card.Root
-    class="w-full max-w-lg flex flex-col px-8 py-8 shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900"
+    class={`w-full max-w-lg flex flex-col px-8 py-8 transition-all duration-1000 duratio shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900 ${showSecondCard?"-translate-x-[0%]":"translate-x-[53%]"}`}
   >
     <div class="relative w-full flex justify-center items-center mb-6">
       <h1
@@ -281,14 +276,14 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
   <!-- ===========================
        Second Card (AI Content)
   ============================ -->
-  {#if showSecondCard}
+  <!-- {#if showSecondCard} -->
     <div
       in:fly={{ x: 400, duration: 800 }}
       out:fly={{ x: 400, duration: 800 }}
-      class="w-full  max-w-lg"
+      class={`w-full  max-w-lg transition-all duration-1000 ${!showSecondCard?"translate-x-[53%] opacity-0":"translate-x-[0%] opacity-100 w-0 "} `}
     >
       <Card.Root
-        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15   dark:bg-gray-900 "
+        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15   dark:bg-gray-900  ${showSecondCard?"translate-x-[53%]":"translate-x-[0%]"}"
       >
         <Card.Content
           class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  overflow-y-scroll hide-scrollbar"
@@ -305,7 +300,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         </Card.Content>
       </Card.Root>
     </div>
-  {/if}
+  <!-- {/if} -->
 </div>
 
 <style>
@@ -330,3 +325,4 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
  
 </style>
 
+ 

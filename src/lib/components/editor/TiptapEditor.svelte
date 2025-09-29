@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { formatAIContent } from "$lib/utils/aiFormatter";
   import { onMount, onDestroy } from "svelte";
   import { Editor } from "@tiptap/core";
   import StarterKit from "@tiptap/starter-kit";
