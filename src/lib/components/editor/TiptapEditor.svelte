@@ -157,13 +157,25 @@ function updateBubbleMenuPosition() {
 
     // position relative to editor wrapper
     menuX = rect.left - wrapperRect.left + rect.width / 2;
-    menuY = rect.top - wrapperRect.top - 10; // small offset above selection
 
+    const menuHeight = bubbleMenu?.offsetHeight || 40; // fallback if not rendered yet
+    const offset = 10;
+
+    // Default: place menu above selection
+    let top = rect.top - wrapperRect.top - offset;
+
+    // If not enough space above, place it below
+    if (top - menuHeight < 0) {
+      top = rect.bottom - wrapperRect.top + offset;
+    }
+
+    menuY = top;
     showMenu = true;
   } else {
     showMenu = false;
   }
 }
+
 
 
 
