@@ -68,28 +68,21 @@
     });
 
     let lastSelection: { from: number; to: number } = { from: 0, to: 0 };
-    editor.on("selectionUpdate", ({ editor }) => {
-      const { from, to } = editor.state.selection;
-      if (
-        from !== to &&
-        (from !== lastSelection.from || to !== lastSelection.to)
-      ) {
-        highlightSelectionOnly();
-        updateBubbleMenuPosition();
+   editor.on("selectionUpdate", ({ editor }) => {
+  const { from, to } = editor.state.selection;
 
-        const domSelection = window.getSelection();
-        if (domSelection && domSelection.rangeCount > 0) {
-          const rect = domSelection.getRangeAt(0).getBoundingClientRect();
-          menuX = rect.left + rect.width / 2;
-          menuY = rect.top - 10;
-          showMenu = true;
-        }
-      } else if (from === to) {
-        showMenu = false;
-      }
-      lastSelection = { from, to };
-      updateActiveStyles();
+  if (from !== to) {
+    highlightSelectionOnly();
+    updateActiveStyles();
+
+    // Wait for the next frame to get proper selection rect
+    requestAnimationFrame(() => {
+      updateBubbleMenuPosition();
     });
+  } else {
+    showMenu = false;
+  }
+});
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -155,18 +148,24 @@
   // ======================================
   // for calculating the positioning of bubble menu
   // ======================================
-  function updateBubbleMenuPosition() {
-    const domSelection = window.getSelection();
-    if (domSelection && domSelection.rangeCount > 0) {
-      const rect = domSelection.getRangeAt(0).getBoundingClientRect();
+function updateBubbleMenuPosition() {
+  const domSelection = window.getSelection();
+  if (domSelection && domSelection.rangeCount > 0 && element) {
+    const range = domSelection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const wrapperRect = element.getBoundingClientRect(); // editor wrapper
 
-      menuX = rect.left + rect.width / 2 + window.scrollX;
-      menuY = rect.top + window.scrollY - 10; // small offset above text
-      showMenu = true;
-    } else {
-      showMenu = false;
-    }
+    // position relative to editor wrapper
+    menuX = rect.left - wrapperRect.left + rect.width / 2;
+    menuY = rect.top - wrapperRect.top - 10; // small offset above selection
+
+    showMenu = true;
+  } else {
+    showMenu = false;
   }
+}
+
+
 
   function setHeading(level: string) {
     const lvl = parseInt(level) as 0 | 1 | 2 | 3;
@@ -297,36 +296,58 @@ ${selectedText}`,
 
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
-  $: if (editor && content) {
-      typeContent(content);
-    }
+  // $: if (editor && content) {
+  //     typeContent(content);
+  //   }
 
-  // helper: typewriter effect
+  // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {
-    const MAX_DURATION = 15_000; // 30 seconds in ms
-    const minSpeed = 7; // lower bound so it doesn't get too fast
+  const { from, to } = editor.state.selection; // capture selection range
+  let pos = from;
 
-    // Dynamically calculate speed so typing finishes in <= 30s
-    let dynamicSpeed = Math.floor(text.length / MAX_DURATION);
-    if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
-    if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too slow
-    for (let i = 0; i < text.length; i++) {
-      editor
-        .chain()
-        .focus()
-        .insertContentAt({ from: speed + i, to: speed + i }, text[i])
-        .run();
-      await new Promise((r) => setTimeout(r, dynamicSpeed));
-    }
+  // First, clear old selection
+  editor.chain().focus().deleteRange({ from, to }).run();
+
+  const MAX_DURATION = 30_000; // 30 seconds in ms
+  const minSpeed = 7; // lower bound so it doesn't get too fast
+
+  // Calculate speed so typing finishes within MAX_DURATION
+  let dynamicSpeed = Math.floor(MAX_DURATION / text.length);
+  if (dynamicSpeed < speed) dynamicSpeed = speed; // cap at default speed
+  if (dynamicSpeed > minSpeed) dynamicSpeed = minSpeed; // ensure minimum
+
+  // Typewriter effect
+  for (let i = 0; i < text.length; i++) {
+    editor
+      .chain()
+      .focus()
+      .insertContentAt({ from: pos + i, to: pos + i }, text[i])
+      .run();
+
+    await new Promise((r) => setTimeout(r, dynamicSpeed));
   }
+
+  const newTo = pos + text.length;
+
+  // Reselect the newly inserted text + highlight
+  editor
+    .chain()
+    .setTextSelection({ from: pos, to: newTo })
+    .setMark("highlight", { color: "" })
+    .run();
+}
+
 </script>
 
-<div class="editor-wrapper relative rounded-2xl overflow-hidden">
+<div class="editor-wrapper relative rounded-2xl overflow-y-scroll hide-scrollbar h-[504px]  ">
   {#if showMenu}
-    <div
-      bind:this={bubbleMenu}
-      class="bubble-menu dark:text-gray-900 z-11"
-      style= "position: fixed; top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
+
+      <div
+    bind:this={bubbleMenu}
+    class="bubble-menu dark:text-gray-900 z-11"
+    style="top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
+  
+     
     >
       <button
         on:click={() => editor.chain().focus().toggleBold().run()}
