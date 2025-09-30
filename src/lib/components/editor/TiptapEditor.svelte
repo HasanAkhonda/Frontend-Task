@@ -27,7 +27,7 @@
   let isUnderline = false;
   let isHighlight = false;
   let isCode = false;
-  let currentHeading: string | number = 0;
+  let currentHeading: string ="0";
 
   let showMenu = false;
   let menuX = 0;
@@ -46,10 +46,10 @@
     isHighlight = editor.isActive("highlight");
     isCode = editor.isActive("codeBlock");
 
-    if (editor.isActive("heading", { level: 1 })) currentHeading = 1;
-    else if (editor.isActive("heading", { level: 2 })) currentHeading = 2;
-    else if (editor.isActive("heading", { level: 3 })) currentHeading = 3;
-    else currentHeading = 0;
+    if (editor.isActive("heading", { level: 1 })) currentHeading = "1";
+    else if (editor.isActive("heading", { level: 2 })) currentHeading = "2";
+    else if (editor.isActive("heading", { level: 3 })) currentHeading = "3";
+    else currentHeading = "0";
   }
 
   onMount(() => {
@@ -67,12 +67,14 @@
     });
 
     let lastSelection: { from: number; to: number } = { from: 0, to: 0 };
-   editor.on("selectionUpdate", ({ editor }) => {
+  editor.on("selectionUpdate", ({ editor }) => {
   const { from, to } = editor.state.selection;
+
+  // Always refresh active styles (even if caret only)
+  updateActiveStyles();
 
   if (from !== to) {
     highlightSelectionOnly();
-    updateActiveStyles();
 
     // Wait for the next frame to get proper selection rect
     requestAnimationFrame(() => {
@@ -81,7 +83,12 @@
   } else {
     showMenu = false;
   }
+  editor.on("transaction", () => {
+  updateActiveStyles();
 });
+
+});
+
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
