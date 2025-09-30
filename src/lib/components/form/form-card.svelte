@@ -132,13 +132,13 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
      Layout Wrapper
 =========================== -->
 <div
-  class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-screen overflow-hidden h-screen md:flex-row justify-center items-center gap-10 px-4 md:px-0 my-auto"
+  class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-full md:overflow-hidden h-full md:h-screen md:flex-row justify-start md:justify-center items-stert md:items-center md:gap-5 lg:gap-10 px-4 md:px-0 py-6 md:py-15"
 >
   <!-- ===========================
        First Card (Form)
   ============================ -->
   <Card.Root
-    class={`w-full max-w-lg flex flex-col px-8 py-8 transition-all duration-1000 duratio shadow-xl rounded-2xl h-[520px] bg-white/15 dark:bg-gray-900 ${showSecondCard?"-translate-x-[0%]":"translate-x-[53%]"}`}
+    class={`w-full max-w-lg flex flex-col px-8 py-8 transition-all duration-1000   shadow-xl rounded-2xl h-full md:h-[520px] bg-white/15 dark:bg-gray-900 ${showSecondCard?"md:translate-x-[0%]":"md:translate-x-[53%]"}`}
   >
     <div class="relative w-full flex justify-center items-center mb-6">
       <h1
@@ -265,7 +265,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
             type="submit"
             disabled={loadingAI}
             class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
-            >{loadingAI ? "Generating..." : "Generate"}</Button
+            >{loadingAI ? "Generating" : "Generate"}</Button
           >
         
         </Card.Footer>
@@ -280,17 +280,17 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     <div
       in:fly={{ x: 400, duration: 800 }}
       out:fly={{ x: 400, duration: 800 }}
-      class={`w-full  max-w-lg transition-all duration-1000 ${!showSecondCard?"translate-x-[53%] opacity-0":"translate-x-[0%] opacity-100 w-0 "} `}
+      class={`w-full  max-w-lg transition-all mt-6 md:mt-0 duration-1000 ${!showSecondCard?"md:translate-x-[53%] md:opacity-0 hidden md:block":"md:translate-x-[0%] opacity-100 block  "} `}
     >
       <Card.Root
-        class="flex-col p-2 shadow-xl rounded-2xl h-[520px] bg-white/15   dark:bg-gray-900  ${showSecondCard?"translate-x-[53%]":"translate-x-[0%]"}"
+        class="flex-col p-2 shadow-xl rounded-2xl h-full  max-h-[520px] md:h-[520px] bg-white/15   dark:bg-gray-900   "
       >
         <Card.Content
           class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  overflow-y-scroll hide-scrollbar"
         >
           {#if loadingAI}
             <!-- Loader -->
-            <div class="flex justify-center items-center h-full">
+            <div class="flex justify-center items-center h-[520px]">
               <span class="loader"></span>
             </div>
           {:else}
