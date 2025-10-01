@@ -74,7 +74,7 @@
   updateActiveStyles();
 
   if (from !== to) {
-    highlightSelectionOnly();
+    // highlightSelectionOnly(); // commented for removing last selected highlights
 
     // Wait for the next frame to get proper selection rect
     requestAnimationFrame(() => {
@@ -314,9 +314,9 @@ ${selectedText}`,
 
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
-  $: if (editor && content) {
-      typeContent(content);
-    }
+  // $: if (editor && content) {
+  //     typeContent(content);
+  //   }
 
   // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {
@@ -391,13 +391,13 @@ ${selectedText}`,
         <UnderlineIcon size={16} />
       </button>
 
-      <!-- <button
+      <button
         on:click={() => editor.chain().focus().toggleHighlight().run()}
         class:active={isHighlight}
         title="Highlight"
       >
         <Highlighter size={16} />
-      </button> -->
+      </button>
 
       <button
         on:click={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -437,7 +437,7 @@ ${selectedText}`,
 
         {#if showPromptInput}
           <div
-            class="absolute top-full -right-1 mt-2 w-42 bg-[#e9ebf1] shadow-2xl rounded-xl px-0.5 py-1 border border-gray-200 dark:border-gray-700 z-[9999] transition-all duration-200"
+            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-0.5 py-1 border border-gray-200 dark:border-gray-700 z-[9999] transition-all duration-200"
           >
             <!-- Input -->
             <input
