@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { X, Check, Loader2 } from "lucide-svelte"; // cross, tick, spinner
   import { onMount, onDestroy } from "svelte";
   import { Editor } from "@tiptap/core";
   import StarterKit from "@tiptap/starter-kit";
@@ -27,7 +28,7 @@
   let isUnderline = false;
   let isHighlight = false;
   let isCode = false;
-  let currentHeading: string ="0";
+  let currentHeading: string = "0";
 
   let showMenu = false;
   let menuX = 0;
@@ -67,28 +68,26 @@
     });
 
     let lastSelection: { from: number; to: number } = { from: 0, to: 0 };
-  editor.on("selectionUpdate", ({ editor }) => {
-  const { from, to } = editor.state.selection;
+    editor.on("selectionUpdate", ({ editor }) => {
+      const { from, to } = editor.state.selection;
 
-  // Always refresh active styles (even if caret only)
-  updateActiveStyles();
+      // Always refresh active styles (even if caret only)
+      updateActiveStyles();
 
-  if (from !== to) {
-    // highlightSelectionOnly(); // commented for removing last selected highlights
+      if (from !== to) {
+        // highlightSelectionOnly(); // commented for removing last selected highlights
 
-    // Wait for the next frame to get proper selection rect
-    requestAnimationFrame(() => {
-      updateBubbleMenuPosition();
+        // Wait for the next frame to get proper selection rect
+        requestAnimationFrame(() => {
+          updateBubbleMenuPosition();
+        });
+      } else {
+        showMenu = false;
+      }
+      editor.on("transaction", () => {
+        updateActiveStyles();
+      });
     });
-  } else {
-    showMenu = false;
-  }
-  editor.on("transaction", () => {
-  updateActiveStyles();
-});
-
-});
-
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -154,36 +153,33 @@
   // ======================================
   // for calculating the positioning of bubble menu
   // ======================================
-function updateBubbleMenuPosition() {
-  const domSelection = window.getSelection();
-  if (domSelection && domSelection.rangeCount > 0 && element) {
-    const range = domSelection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    const wrapperRect = element.getBoundingClientRect(); // editor wrapper
+  function updateBubbleMenuPosition() {
+    const domSelection = window.getSelection();
+    if (domSelection && domSelection.rangeCount > 0 && element) {
+      const range = domSelection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const wrapperRect = element.getBoundingClientRect(); // editor wrapper
 
-    // position relative to editor wrapper
-    menuX = rect.left - wrapperRect.left + rect.width / 2;
+      // position relative to editor wrapper
+      menuX = rect.left - wrapperRect.left + rect.width / 2;
 
-    const menuHeight = bubbleMenu?.offsetHeight || 40; // fallback if not rendered yet
-    const offset = 10;
+      const menuHeight = bubbleMenu?.offsetHeight || 40; // fallback if not rendered yet
+      const offset = 10;
 
-    // Default: place menu above selection
-    let top = rect.top - wrapperRect.top - offset;
+      // Default: place menu above selection
+      let top = rect.top - wrapperRect.top - offset;
 
-    // If not enough space above, place it below
-    if (top - menuHeight < 0) {
-      top = rect.bottom - wrapperRect.top + offset;
+      // If not enough space above, place it below
+      if (top - menuHeight < 0) {
+        top = rect.bottom - wrapperRect.top + offset;
+      }
+
+      menuY = top;
+      showMenu = true;
+    } else {
+      showMenu = false;
     }
-
-    menuY = top;
-    showMenu = true;
-  } else {
-    showMenu = false;
   }
-}
-
-
-
 
   function setHeading(level: string) {
     const lvl = parseInt(level) as 0 | 1 | 2 | 3;
@@ -320,52 +316,50 @@ ${selectedText}`,
 
   // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {
-  const { from, to } = editor.state.selection; // capture selection range
-  let pos = from;
+    const { from, to } = editor.state.selection; // capture selection range
+    let pos = from;
 
-  // First, clear old selection
-  editor.chain().focus().deleteRange({ from, to }).run();
+    // First, clear old selection
+    editor.chain().focus().deleteRange({ from, to }).run();
 
-  const MAX_DURATION = 30_000; // 30 seconds in ms
-  const minSpeed = 7; // lower bound so it doesn't get too fast
+    const MAX_DURATION = 30_000; // 30 seconds in ms
+    const minSpeed = 7; // lower bound so it doesn't get too fast
 
-  // Calculate speed so typing finishes within MAX_DURATION
-  let dynamicSpeed = Math.floor(MAX_DURATION / text.length);
-  if (dynamicSpeed < speed) dynamicSpeed = speed; // cap at default speed
-  if (dynamicSpeed > minSpeed) dynamicSpeed = minSpeed; // ensure minimum
+    // Calculate speed so typing finishes within MAX_DURATION
+    let dynamicSpeed = Math.floor(MAX_DURATION / text.length);
+    if (dynamicSpeed < speed) dynamicSpeed = speed; // cap at default speed
+    if (dynamicSpeed > minSpeed) dynamicSpeed = minSpeed; // ensure minimum
 
-  // Typewriter effect
-  for (let i = 0; i < text.length; i++) {
+    // Typewriter effect
+    for (let i = 0; i < text.length; i++) {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt({ from: pos + i, to: pos + i }, text[i])
+        .run();
+
+      await new Promise((r) => setTimeout(r, dynamicSpeed));
+    }
+
+    const newTo = pos + text.length;
+
+    // Reselect the newly inserted text + highlight
     editor
       .chain()
-      .focus()
-      .insertContentAt({ from: pos + i, to: pos + i }, text[i])
+      .setTextSelection({ from: pos, to: newTo })
+      .setMark("highlight", { color: "" })
       .run();
-
-    await new Promise((r) => setTimeout(r, dynamicSpeed));
   }
-
-  const newTo = pos + text.length;
-
-  // Reselect the newly inserted text + highlight
-  editor
-    .chain()
-    .setTextSelection({ from: pos, to: newTo })
-    .setMark("highlight", { color: "" })
-    .run();
-}
-
 </script>
 
-<div class="editor-wrapper relative rounded-2xl overflow-y-scroll hide-scrollbar h-[504px]  ">
+<div
+  class="editor-wrapper relative rounded-2xl overflow-y-scroll hide-scrollbar h-[504px]"
+>
   {#if showMenu}
-
-      <div
-    bind:this={bubbleMenu}
-    class="bubble-menu dark:text-gray-900 z-11"
-    style="top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
-  
-     
+    <div
+      bind:this={bubbleMenu}
+      class="bubble-menu dark:text-gray-900 z-11"
+      style="top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
     >
       <button
         on:click={() => editor.chain().focus().toggleBold().run()}
@@ -437,7 +431,7 @@ ${selectedText}`,
 
         {#if showPromptInput}
           <div
-            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-0.5 py-1 border border-gray-200 dark:border-gray-700 z-[9999] transition-all duration-200"
+            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-1 py-1 border border-gray-200 dark:border-gray-700 z-[9999] transition-all duration-200"
           >
             <!-- Input -->
             <input
@@ -448,20 +442,25 @@ ${selectedText}`,
             />
 
             <!-- Buttons -->
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-between mt-1 gap-1">
               <button
-                class="text-xs px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                class=" w-full text-xs px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 on:click={() => (
                   (showPromptInput = false), cancelRegeneration()
                 )}
               >
-                Cancel
+                <X class="m-2" size={14} />
               </button>
               <button
-                class={`text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition  ${regenerating ? "text-green-800 bg-indigo-600 hover:none" : "text-green-600 bg-indigo-400"}`}
+                class={` w-full text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition  ${regenerating ? "text-green-800 bg-indigo-600 hover:none" : "text-green-600 bg-indigo-400"}`}
                 on:click={regenerateSelection}
+                disabled={regenerating}
               >
-                {regenerating ? "Generating" : "Regenerate"}
+                {#if regenerating}
+                  <Loader2 class="animate-spin m-2" size={14} />
+                {:else}
+                  <Check class="m-2" size={14} />
+                {/if}
               </button>
             </div>
           </div>
@@ -474,7 +473,6 @@ ${selectedText}`,
 </div>
 
 <style>
-  
   .heading-dropdown {
     font-size: 12px;
     padding: 2px 4px;
