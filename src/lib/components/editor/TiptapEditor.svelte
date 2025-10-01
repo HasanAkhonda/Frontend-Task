@@ -310,9 +310,9 @@ ${selectedText}`,
 
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
-  // $: if (editor && content) {
-  //     typeContent(content);
-  //   }
+  $: if (editor && content) {
+      typeContent(content);
+    }
 
   // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {
