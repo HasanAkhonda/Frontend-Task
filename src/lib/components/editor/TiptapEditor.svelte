@@ -89,20 +89,83 @@
       });
     });
 
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        element &&
-        !element.contains(target) &&
-        bubbleMenu &&
-        !bubbleMenu.contains(target)
-      ) {
+      if (from !== to) {
+        highlightSelectionOnly(); // commented for removing last selected highlights
+
+        // Wait for the next frame to get proper selection rect
+        requestAnimationFrame(() => {
+          updateBubbleMenuPosition();
+        });
+      } else {
         showMenu = false;
       }
-      if (regenerateContainer && !regenerateContainer.contains(target)) {
-        showPromptInput = false;
-      }
-    };
+      editor.on("transaction", () => {
+        updateActiveStyles();
+      });
+    });
+const handleClick = (event: MouseEvent) => {
+  const target = event.target as Node;
+
+  // If clicked outside editor + bubble menu
+  const clickedOutside =
+    element && !element.contains(target) &&
+    bubbleMenu && !bubbleMenu.contains(target);
+
+  // If clicked inside editor
+  const clickedInsideEditor = element && element.contains(target);
+
+  // Handle clicking directly on highlighted text
+  const isOnHighlight =
+    target instanceof HTMLElement &&
+    target.closest("mark[data-type='highlight']");
+
+  if (clickedOutside) {
+    // 🔹 Clicked outside editor — remove all highlights
+    showMenu = false;
+    editor.chain().focus().unsetHighlight().run();
+  } else if (clickedInsideEditor && !isOnHighlight) {
+    // 🔹 Clicked inside editor but NOT on highlighted text — remove all highlights
+    editor.chain().focus().unsetHighlight().run();
+  } else if (isOnHighlight) {
+    // 🔹 Clicked directly on a highlighted text — toggle it off
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, state }) => {
+        tr.doc.descendants((node, pos) => {
+          if (node.marks.some(m => m.type.name === "highlight")) {
+            tr.removeMark(pos, pos + node.nodeSize, state.schema.marks.highlight);
+          }
+        });
+        return true;
+      })
+      .run();
+  }
+
+  // Handle regenerate input separately
+  if (regenerateContainer && !regenerateContainer.contains(target)) {
+    showPromptInput = false;
+  }
+};
+
+document.addEventListener("mousedown", handleClick);
+
+
+
+    // const handleClickOutside = (event: MouseEvent) => {
+    //   const target = event.target as Node;
+    //   if (
+    //     element &&
+    //     !element.contains(target) &&
+    //     bubbleMenu &&
+    //     !bubbleMenu.contains(target)
+    //   ) {
+    //     showMenu = false;
+    //   }
+    //   if (regenerateContainer && !regenerateContainer.contains(target)) {
+    //     showPromptInput = false;
+    //   }
+    // };
     document.addEventListener("mousedown", handleClickOutside);
 
     const handleScrollOrResize = () => {
@@ -310,9 +373,9 @@ ${selectedText}`,
 
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
-  $: if (editor && content) {
-      typeContent(content);
-    }
+  // $: if (editor && content) {
+  //     typeContent(content);
+  //   }
 
   // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {

@@ -46,7 +46,7 @@
 
     if (loadingAI) return; // prevent multiple clicks while loading
 
-     controller = new AbortController();
+    controller = new AbortController();
     submittedData = { fullname, title, company, tags, tone, goal };
     console.log("Form Data:", submittedData);
     showSecondCard = true;
@@ -86,7 +86,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
           model: "command-a-03-2025",
           messages: [{ role: "user", content: prompt }],
         }),
-          signal: controller.signal,
+        signal: controller.signal,
       });
 
       const result = await response.json();
@@ -95,16 +95,16 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         result?.message?.content?.[0]?.text ?? "No AI text returned";
 
       editorContent = formatAIContent(aiText);
-    }  catch (err:any) {
-    if (err.name === "AbortError") {
-      console.log("Fetch aborted by reset.");
-    } else {
-      console.error("Error fetching AI response:", err);
-      editorContent = "Error fetching AI response";
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        console.log("Fetch aborted by reset.");
+      } else {
+        console.error("Error fetching AI response:", err);
+        editorContent = "Error fetching AI response";
+      }
+    } finally {
+      loadingAI = false;
     }
-  } finally {
-    loadingAI = false;
-  }
   }
 
   // -----------------------------
@@ -112,8 +112,8 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
   // -----------------------------
   function handleReset() {
     if (controller) {
-    controller.abort(); // cancel fetch if running
-  }
+      controller.abort(); // cancel fetch if running
+    }
     fullname = "";
     title = "";
     company = "";
@@ -123,9 +123,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     editorContent = "";
     showSecondCard = false;
     loadingAI = false; // hide loader after content is ready
-
   }
-  
 </script>
 
 <!-- ===========================
@@ -159,7 +157,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
       </div>
     </div>
 
-    <Card.Content class="flex-1 overflow-auto px-0">
+    <Card.Content class="flex-1  px-0">
       <form class="flex flex-col gap-4" on:submit={handleSubmit}>
         <!-- Grid: Full Name & Title -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
@@ -267,7 +265,6 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
             class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
             >{loadingAI ? "Generating" : "Generate"}</Button
           >
-        
         </Card.Footer>
       </form>
     </Card.Content>
@@ -286,7 +283,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         class="flex-col p-2 shadow-xl rounded-2xl h-full  max-h-[520px] md:h-[520px] bg-white/15   dark:bg-gray-900   "
       >
         <Card.Content
-          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  overflow-y-scroll hide-scrollbar"
+          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  "
         >
           {#if loadingAI}
             <!-- Loader -->
@@ -321,8 +318,6 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
     height: 3rem;
     animation: spin 1s linear infinite;
   }
-
- 
 </style>
 
  
