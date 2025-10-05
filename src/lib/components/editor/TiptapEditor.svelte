@@ -75,6 +75,21 @@
       updateActiveStyles();
 
       if (from !== to) {
+        // highlightSelectionOnly(); // commented for removing last selected highlights
+
+        // Wait for the next frame to get proper selection rect
+        requestAnimationFrame(() => {
+          updateBubbleMenuPosition();
+        });
+      } else {
+        showMenu = false;
+      }
+      editor.on("transaction", () => {
+        updateActiveStyles();
+      });
+    });
+
+      if (from !== to) {
         highlightSelectionOnly(); // commented for removing last selected highlights
 
         // Wait for the next frame to get proper selection rect
@@ -433,13 +448,13 @@ ${selectedText}`,
         <UnderlineIcon size={16} />
       </button>
 
-      <!-- <button
+      <button
         on:click={() => editor.chain().focus().toggleHighlight().run()}
         class:active={isHighlight}
         title="Highlight"
       >
         <Highlighter size={16} />
-      </button> -->
+      </button>
 
       <button
         on:click={() => editor.chain().focus().toggleCodeBlock().run()}
