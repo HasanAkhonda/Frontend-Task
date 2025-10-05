@@ -1,5 +1,5 @@
 <script lang="ts">
-  import FormCard from "$lib/components/form/form-card.svelte";
+  import FormCard from "$lib/components/left-side-section/personal-bio/biodata.svelte";
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
 

@@ -277,7 +277,7 @@ Text: ${selectedText}`,
             ""
           )
           .run();
-        await typewriterInsert (regenerated, editor.state.selection.from);
+        await typewriterInsert(regenerated, editor.state.selection.from);
       }
     } catch (err: any) {
       if (err.name === "AbortError") console.log("Regeneration aborted");
@@ -319,9 +319,8 @@ Text: ${selectedText}`,
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
   $: if (editor && content) {
-      typeContent(content);
-    }
-
+    typeContent(content);
+  }
 
   // ======================================
   // Typewriter effect for AI response
@@ -358,6 +357,9 @@ Text: ${selectedText}`,
   class="editor-wrapper relative rounded-2xl overflow-y-scroll hide-scrollbar h-[504px]"
 >
   {#if showMenu}
+    <!-- ======================================
+         Bubble Menu - Formatting Toolbar
+    ====================================== -->
     <div
       bind:this={bubbleMenu}
       class="bubble-menu dark:text-gray-900 z-11"
@@ -396,7 +398,7 @@ Text: ${selectedText}`,
         <Code size={16} />
       </button>
 
-      <!-- Heading -->
+      <!-- Heading Dropdown -->
       <select
         class="heading-dropdown font-semibold text-xl"
         bind:value={currentHeading}
@@ -408,7 +410,9 @@ Text: ${selectedText}`,
         <option value="3">h3</option>
       </select>
 
-      <!-- Regenerate Button -->
+      <!-- ======================================
+           AI Regenerate Button with Prompt Input
+      ====================================== -->
       <div class="relative" bind:this={regenerateContainer}>
         <button
           on:click={() => (showPromptInput = !showPromptInput)}
@@ -426,40 +430,71 @@ Text: ${selectedText}`,
           {/if}
         </button>
 
+        <!-- ======================================
+             AI Prompt Input Card (New Design)
+        ====================================== -->
         {#if showPromptInput}
           <div
-            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-1 py-1 border border-gray-200 dark:border-gray-700 z-[9999]"
+            class="absolute right-[-4px] top-8 z-10 w-44 rounded-lg border border-gray-200 bg-white shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-300 dark:bg-[#f3f4f6] hide-scrollbar"
           >
-            <input
-              type="text"
-              placeholder="e.g. Make it formal"
-              bind:value={userPrompt}
-              class="w-full rounded-xl px-3 py-2 text-sm bg-[#e9ebf1] border border-gray-300 focus:ring-1 focus:ring-gray-400"
-            />
-            <div class="flex justify-between mt-1 gap-1">
-              <button
-                class="w-full text-xs px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
-                on:click={() => (
-                  (showPromptInput = false), cancelRegeneration()
-                )}
-              >
-                <X size={14} />
-              </button>
-              <button
-                class={`w-full text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition ${
-                  regenerating
-                    ? "text-green-800 bg-indigo-600"
-                    : "text-green-600 bg-indigo-400"
-                }`}
-                on:click={regenerateSelection}
+            <div class="px-2.5 py-2">
+              <!-- Prompt Input Textarea (compact) -->
+              <!-- svelte-ignore a11y_autofocus -->
+              <!-- svelte-ignore element_invalid_self_closing_tag -->
+              <textarea
+                id="ai-prompt"
+                class="mt-0.5 w-full rounded-md border hide-scrollbar border-gray-300 bg-white p-1.5 text-[12px] leading-4 text-gray-900 shadow-sm transition-all duration-200 ease-in-out focus:border-blue-500 focus:ring-2 focus:ring-blue-400 dark:bg-[#f3f4f6] dark:text-gray-800"
+                placeholder="E.g., 'Summarize', 'Rephrase', 'Make formal'"
+                bind:value={userPrompt}
                 disabled={regenerating}
-              >
-                {#if regenerating}
-                  <Loader2 class="animate-spin" size={14} />
-                {:else}
-                  <Check size={14} />
-                {/if}
-              </button>
+                autofocus
+                rows="3"
+              />
+
+              <!-- Action Buttons (compact) -->
+              <div class="mt-2 flex justify-end space-x-1.5">
+                <!-- Cancel -->
+                <button
+                  type="button"
+                  class="group rounded-full border border-transparent bg-red-50 p-1.5 transition-all duration-200 ease-in-out hover:border-red-200 hover:bg-red-100 focus:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  on:click={() => {
+                    showPromptInput = false;
+                    userPrompt = "";
+                    cancelRegeneration();
+                  }}
+                  disabled={regenerating}
+                  title="Cancel"
+                >
+                  <X
+                    size={16}
+                    class="text-red-500 transition-colors duration-200 group-hover:text-red-600"
+                  />
+                </button>
+
+                <!-- Apply -->
+                <button
+                  type="button"
+                  class="group rounded-full border border-transparent bg-green-50 p-1.5 transition-all duration-200 ease-in-out hover:border-green-200 hover:bg-green-100 focus:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  on:click={regenerateSelection}
+                  disabled={!userPrompt.trim() || regenerating}
+                  title="Apply"
+                >
+                  {#if regenerating}
+                    <div
+                      class="inline-block h-4 w-4 animate-spin rounded-full border-[2px] border-current border-t-transparent text-blue-600 motion-reduce:animate-[spin_1.5s_linear_infinite]"
+                      role="status"
+                      aria-label="loading"
+                    >
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                  {:else}
+                    <Check
+                      size={16}
+                      class="text-green-500 transition-colors duration-200 group-hover:text-green-600"
+                    />
+                  {/if}
+                </button>
+              </div>
             </div>
           </div>
         {/if}
@@ -467,11 +502,14 @@ Text: ${selectedText}`,
     </div>
   {/if}
 
-  <!-- Editor -->
+  <!-- ======================================
+       TipTap Editor Element
+  ====================================== -->
   <div bind:this={element} class="editor z-10"></div>
 </div>
 
 <style>
+  /* Heading Dropdown Styles */
   .heading-dropdown {
     font-size: 12px;
     padding: 2px 4px;
@@ -481,6 +519,7 @@ Text: ${selectedText}`,
     cursor: pointer;
   }
 
+  /* ProseMirror Editor Styles */
   :global(.ProseMirror) {
     width: 100%;
     border: none;
