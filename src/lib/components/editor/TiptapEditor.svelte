@@ -277,7 +277,7 @@ Text: ${selectedText}`,
             ""
           )
           .run();
-        await typewriterInsert(regenerated, editor.state.selection.from);
+        await typewriterInsert (regenerated, editor.state.selection.from);
       }
     } catch (err: any) {
       if (err.name === "AbortError") console.log("Regeneration aborted");
@@ -293,6 +293,35 @@ Text: ${selectedText}`,
   function cancelRegeneration() {
     abortController?.abort();
   }
+
+  // old type writer for main Ai response
+  async function typeContent(fullText: string, speed = 60) {
+    if (!editor) return;
+
+    const MAX_DURATION = 15_000; // 30 seconds in ms
+    const minSpeed = 5; // lower bound so it doesn't get too fast
+
+    // Dynamically calculate speed so typing finishes in <= 30s
+    let dynamicSpeed = Math.floor(MAX_DURATION / fullText.length);
+    if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
+    if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too fast
+
+    editor.commands.clearContent(); // Clear previous content
+    let current = "";
+
+    for (let i = 0; i < fullText.length; i++) {
+      current += fullText[i];
+      editor.commands.setContent(current);
+      await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
+    }
+  }
+
+  // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
+
+  $: if (editor && content) {
+      typeContent(content);
+    }
+
 
   // ======================================
   // Typewriter effect for AI response
