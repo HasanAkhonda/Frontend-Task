@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { X, Check, Loader2 } from "lucide-svelte"; // cross, tick, spinner
   import { onMount, onDestroy } from "svelte";
   import { Editor } from "@tiptap/core";
   import StarterKit from "@tiptap/starter-kit";
@@ -15,14 +14,23 @@
     UnderlineIcon,
     Sparkles,
     HourglassIcon,
+    X,
+    Check,
+    Loader2,
   } from "lucide-svelte";
 
+  // ======================================
+  // Props & local refs
+  // ======================================
+  export let content: string = "";
   let element: HTMLDivElement;
   let bubbleMenu: HTMLElement;
+  let regenerateContainer: HTMLElement;
   let editor: Editor;
 
-  export let content: string = " ";
-
+  // ======================================
+  // Editor state variables
+  // ======================================
   let isBold = false;
   let isItalic = false;
   let isUnderline = false;
@@ -30,15 +38,20 @@
   let isCode = false;
   let currentHeading: string = "0";
 
+  // Menu state
   let showMenu = false;
   let menuX = 0;
   let menuY = 0;
 
+  // AI regenerate state
   let regenerating = false;
   let showPromptInput = false;
   let userPrompt = "";
-  let regenerateContainer: HTMLElement;
+  let abortController: AbortController | null = null;
 
+  // ======================================
+  // Utility: Update active text styles
+  // ======================================
   function updateActiveStyles() {
     if (!editor) return;
     isBold = editor.isActive("bold");
@@ -53,6 +66,9 @@
     else currentHeading = "0";
   }
 
+  // ======================================
+  // Mount editor
+  // ======================================
   onMount(() => {
     editor = new Editor({
       element,
@@ -67,137 +83,54 @@
       onUpdate: updateActiveStyles,
     });
 
-    let lastSelection: { from: number; to: number } = { from: 0, to: 0 };
+    // Handle selection updates
     editor.on("selectionUpdate", ({ editor }) => {
       const { from, to } = editor.state.selection;
-
-      // Always refresh active styles (even if caret only)
       updateActiveStyles();
 
       if (from !== to) {
-        // highlightSelectionOnly(); // commented for removing last selected highlights
-
-        // Wait for the next frame to get proper selection rect
-        requestAnimationFrame(() => {
-          updateBubbleMenuPosition();
-        });
+        highlightSelectionOnly();
+        requestAnimationFrame(updateBubbleMenuPosition);
       } else {
         showMenu = false;
       }
-      editor.on("transaction", () => {
-        updateActiveStyles();
-      });
     });
 
-      if (from !== to) {
-        highlightSelectionOnly(); // commented for removing last selected highlights
+    // Handle transactions (e.g., bold/italic toggles)
+    editor.on("transaction", updateActiveStyles);
 
-        // Wait for the next frame to get proper selection rect
-        requestAnimationFrame(() => {
-          updateBubbleMenuPosition();
-        });
-      } else {
-        showMenu = false;
-      }
-      editor.on("transaction", () => {
-        updateActiveStyles();
-      });
-    });
-const handleClick = (event: MouseEvent) => {
-  const target = event.target as Node;
-
-  // If clicked outside editor + bubble menu
-  const clickedOutside =
-    element && !element.contains(target) &&
-    bubbleMenu && !bubbleMenu.contains(target);
-
-  // If clicked inside editor
-  const clickedInsideEditor = element && element.contains(target);
-
-  // Handle clicking directly on highlighted text
-  const isOnHighlight =
-    target instanceof HTMLElement &&
-    target.closest("mark[data-type='highlight']");
-
-  if (clickedOutside) {
-    // 🔹 Clicked outside editor — remove all highlights
-    showMenu = false;
-    editor.chain().focus().unsetHighlight().run();
-  } else if (clickedInsideEditor && !isOnHighlight) {
-    // 🔹 Clicked inside editor but NOT on highlighted text — remove all highlights
-    editor.chain().focus().unsetHighlight().run();
-  } else if (isOnHighlight) {
-    // 🔹 Clicked directly on a highlighted text — toggle it off
-    editor
-      .chain()
-      .focus()
-      .command(({ tr, state }) => {
-        tr.doc.descendants((node, pos) => {
-          if (node.marks.some(m => m.type.name === "highlight")) {
-            tr.removeMark(pos, pos + node.nodeSize, state.schema.marks.highlight);
-          }
-        });
-        return true;
-      })
-      .run();
-  }
-
-  // Handle regenerate input separately
-  if (regenerateContainer && !regenerateContainer.contains(target)) {
-    showPromptInput = false;
-  }
-};
-
-document.addEventListener("mousedown", handleClick);
-
-
-
-    // const handleClickOutside = (event: MouseEvent) => {
-    //   const target = event.target as Node;
-    //   if (
-    //     element &&
-    //     !element.contains(target) &&
-    //     bubbleMenu &&
-    //     !bubbleMenu.contains(target)
-    //   ) {
-    //     showMenu = false;
-    //   }
-    //   if (regenerateContainer && !regenerateContainer.contains(target)) {
-    //     showPromptInput = false;
-    //   }
-    // };
+    // Handle clicks outside editor or menu
     document.addEventListener("mousedown", handleClickOutside);
 
-    const handleScrollOrResize = () => {
-      if (showMenu) updateBubbleMenuPosition();
-    };
-
+    // Handle scroll/resize to reposition menu
+    const handleScrollOrResize = () => showMenu && updateBubbleMenuPosition();
     window.addEventListener("scroll", handleScrollOrResize, true);
     window.addEventListener("resize", handleScrollOrResize);
 
+    // Cleanup
     onDestroy(() => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScrollOrResize, true);
       window.removeEventListener("resize", handleScrollOrResize);
-
       editor?.destroy();
     });
   });
+
   // ======================================
-  // for highlight last selected portion
+  // Highlight logic
   // ======================================
   function highlightSelectionOnly() {
     if (!editor) return;
     const { from, to } = editor.state.selection;
-    if (from === to) return; // nothing selected
+    if (from === to) return;
 
-    // Remove all previous highlights
+    // Remove previous highlights
     editor
       .chain()
       .focus()
       .command(({ tr, state }) => {
         tr.doc.descendants((node, pos) => {
-          if (node.marks.some((mark) => mark.type.name === "highlight")) {
+          if (node.marks.some((m) => m.type.name === "highlight")) {
             tr.removeMark(
               pos,
               pos + node.nodeSize,
@@ -209,33 +142,26 @@ document.addEventListener("mousedown", handleClick);
       })
       .run();
 
-    // Apply highlight to current selection
+    // Add new highlight
     editor.chain().focus().setMark("highlight", { color: "" }).run();
   }
 
   // ======================================
-  // for calculating the positioning of bubble menu
+  // Bubble Menu positioning
   // ======================================
   function updateBubbleMenuPosition() {
-    const domSelection = window.getSelection();
-    if (domSelection && domSelection.rangeCount > 0 && element) {
-      const range = domSelection.getRangeAt(0);
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && element) {
+      const range = sel.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      const wrapperRect = element.getBoundingClientRect(); // editor wrapper
+      const wrapperRect = element.getBoundingClientRect();
 
-      // position relative to editor wrapper
       menuX = rect.left - wrapperRect.left + rect.width / 2;
-
-      const menuHeight = bubbleMenu?.offsetHeight || 40; // fallback if not rendered yet
+      const menuHeight = bubbleMenu?.offsetHeight || 40;
       const offset = 10;
 
-      // Default: place menu above selection
       let top = rect.top - wrapperRect.top - offset;
-
-      // If not enough space above, place it below
-      if (top - menuHeight < 0) {
-        top = rect.bottom - wrapperRect.top + offset;
-      }
+      if (top - menuHeight < 0) top = rect.bottom - wrapperRect.top + offset;
 
       menuY = top;
       showMenu = true;
@@ -244,6 +170,54 @@ document.addEventListener("mousedown", handleClick);
     }
   }
 
+  // ======================================
+  // Handle outside clicks
+  // ======================================
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as Node;
+    const clickedOutside =
+      element &&
+      !element.contains(target) &&
+      bubbleMenu &&
+      !bubbleMenu.contains(target);
+
+    const clickedInsideEditor = element && element.contains(target);
+    const isOnHighlight =
+      target instanceof HTMLElement &&
+      target.closest("mark[data-type='highlight']");
+
+    if (clickedOutside) {
+      showMenu = false;
+      editor.chain().focus().unsetHighlight().run();
+    } else if (clickedInsideEditor && !isOnHighlight) {
+      editor.chain().focus().unsetHighlight().run();
+    } else if (isOnHighlight) {
+      editor
+        .chain()
+        .focus()
+        .command(({ tr, state }) => {
+          tr.doc.descendants((node, pos) => {
+            if (node.marks.some((m) => m.type.name === "highlight")) {
+              tr.removeMark(
+                pos,
+                pos + node.nodeSize,
+                state.schema.marks.highlight
+              );
+            }
+          });
+          return true;
+        })
+        .run();
+    }
+
+    if (regenerateContainer && !regenerateContainer.contains(target)) {
+      showPromptInput = false;
+    }
+  }
+
+  // ======================================
+  // Heading toggle
+  // ======================================
   function setHeading(level: string) {
     const lvl = parseInt(level) as 0 | 1 | 2 | 3;
     if (lvl === 0) editor.chain().focus().setParagraph().run();
@@ -251,23 +225,11 @@ document.addEventListener("mousedown", handleClick);
     currentHeading = level;
   }
 
-  function updateHeadingState() {
-    if (editor.isActive("heading", { level: 1 })) currentHeading = "1";
-    else if (editor.isActive("heading", { level: 2 })) currentHeading = "2";
-    else if (editor.isActive("heading", { level: 3 })) currentHeading = "3";
-    else currentHeading = "0";
-  }
-
-  // onMount(() => {
-  //   editor.on("selectionUpdate", updateHeadingState);
-  //   updateHeadingState();
-  // });
-
-  let abortController: AbortController | null = null;
-
+  // ======================================
+  // AI Regeneration Logic
+  // ======================================
   async function regenerateSelection() {
     if (!editor) return;
-
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
       editor.state.selection.to,
@@ -276,8 +238,6 @@ document.addEventListener("mousedown", handleClick);
     if (!selectedText.trim()) return;
 
     regenerating = true;
-
-    // Create a new AbortController for this request
     abortController = new AbortController();
     const { signal } = abortController;
 
@@ -294,25 +254,18 @@ document.addEventListener("mousedown", handleClick);
           messages: [
             {
               role: "user",
-              content: `You are an AI writing assistant. 
-Rewrite the following text according to the instruction, 
-but do not make it longer than 2 lines more than the original. 
-Keep the meaning clear, concise, and natural. And most importantly keep the formatting intact. 
-
+              content: `Rewrite this text per user instruction. 
 Instruction: ${userPrompt}
-Text to rewrite:
-${selectedText}`,
+Text: ${selectedText}`,
             },
           ],
         }),
-        signal, // attach abort signal
+        signal,
       });
 
       const result = await response.json();
       const regenerated = result?.message?.content?.[0]?.text ?? "";
-
       if (regenerated) {
-        // Clear old selection first
         editor
           .chain()
           .focus()
@@ -321,19 +274,14 @@ ${selectedText}`,
               from: editor.state.selection.from,
               to: editor.state.selection.to,
             },
-            "" // clear
+            ""
           )
           .run();
-
-        // Call typewriter effect
         await typewriterInsert(regenerated, editor.state.selection.from);
       }
     } catch (err: any) {
-      if (err.name === "AbortError") {
-        console.log("Regeneration aborted by user");
-      } else {
-        console.error("Error regenerating text:", err);
-      }
+      if (err.name === "AbortError") console.log("Regeneration aborted");
+      else console.error("Error:", err);
     } finally {
       regenerating = false;
       showPromptInput = false;
@@ -342,79 +290,41 @@ ${selectedText}`,
     }
   }
 
-  // Optional: Function to abort current generation
   function cancelRegeneration() {
-    if (abortController) {
-      abortController.abort();
-    }
+    abortController?.abort();
   }
 
-  // old type writer for main Ai response
-  async function typeContent(fullText: string, speed = 60) {
-    if (!editor) return;
-
-    const MAX_DURATION = 15_000; // 30 seconds in ms
-    const minSpeed = 5; // lower bound so it doesn't get too fast
-
-    // Dynamically calculate speed so typing finishes in <= 30s
-    let dynamicSpeed = Math.floor(MAX_DURATION / fullText.length);
-    if (dynamicSpeed > speed) dynamicSpeed = speed; // cap at default
-    if (dynamicSpeed < minSpeed) dynamicSpeed = minSpeed; // avoid too fast
-
-    editor.commands.clearContent(); // Clear previous content
-    let current = "";
-
-    for (let i = 0; i < fullText.length; i++) {
-      current += fullText[i];
-      editor.commands.setContent(current);
-      await new Promise((resolve) => setTimeout(resolve, dynamicSpeed));
-    }
-  }
-
-  // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
-
-  // $: if (editor && content) {
-  //     typeContent(content);
-  //   }
-
-  // helper: typewriter effect aded with highlighter
-  async function typewriterInsert(text: string, speed = 60) {
-    const { from, to } = editor.state.selection; // capture selection range
-    let pos = from;
-
-    // First, clear old selection
-    editor.chain().focus().deleteRange({ from, to }).run();
-
-    const MAX_DURATION = 30_000; // 30 seconds in ms
-    const minSpeed = 7; // lower bound so it doesn't get too fast
-
-    // Calculate speed so typing finishes within MAX_DURATION
+  // ======================================
+  // Typewriter effect for AI response
+  // ======================================
+  async function typewriterInsert(text: string, fromPos: number, speed = 60) {
+    const MAX_DURATION = 30_000;
+    const minSpeed = 7;
     let dynamicSpeed = Math.floor(MAX_DURATION / text.length);
-    if (dynamicSpeed < speed) dynamicSpeed = speed; // cap at default speed
-    if (dynamicSpeed > minSpeed) dynamicSpeed = minSpeed; // ensure minimum
+    if (dynamicSpeed < speed) dynamicSpeed = speed;
+    if (dynamicSpeed > minSpeed) dynamicSpeed = minSpeed;
 
-    // Typewriter effect
     for (let i = 0; i < text.length; i++) {
       editor
         .chain()
         .focus()
-        .insertContentAt({ from: pos + i, to: pos + i }, text[i])
+        .insertContentAt({ from: fromPos + i, to: fromPos + i }, text[i])
         .run();
-
       await new Promise((r) => setTimeout(r, dynamicSpeed));
     }
 
-    const newTo = pos + text.length;
-
-    // Reselect the newly inserted text + highlight
+    const newTo = fromPos + text.length;
     editor
       .chain()
-      .setTextSelection({ from: pos, to: newTo })
+      .setTextSelection({ from: fromPos, to: newTo })
       .setMark("highlight", { color: "" })
       .run();
   }
 </script>
 
+<!-- ======================================
+     Template
+====================================== -->
 <div
   class="editor-wrapper relative rounded-2xl overflow-y-scroll hide-scrollbar h-[504px]"
 >
@@ -424,6 +334,7 @@ ${selectedText}`,
       class="bubble-menu dark:text-gray-900 z-11"
       style="top: {menuY}px; left: {menuX}px; transform: translate(-50%, -100%);"
     >
+      <!-- Formatting Buttons -->
       <button
         on:click={() => editor.chain().focus().toggleBold().run()}
         class:active={isBold}
@@ -431,7 +342,6 @@ ${selectedText}`,
       >
         <Bold size={16} />
       </button>
-
       <button
         on:click={() => editor.chain().focus().toggleItalic().run()}
         class:active={isItalic}
@@ -439,7 +349,6 @@ ${selectedText}`,
       >
         <Italic size={16} />
       </button>
-
       <button
         on:click={() => editor.chain().focus().toggleUnderline().run()}
         class:active={isUnderline}
@@ -447,15 +356,9 @@ ${selectedText}`,
       >
         <UnderlineIcon size={16} />
       </button>
-
-      <button
-        on:click={() => editor.chain().focus().toggleHighlight().run()}
-        class:active={isHighlight}
-        title="Highlight"
-      >
+      <!-- <button on:click={() => editor.chain().focus().toggleHighlight().run()} class:active={isHighlight} title="Highlight">
         <Highlighter size={16} />
-      </button>
-
+      </button> -->
       <button
         on:click={() => editor.chain().focus().toggleCodeBlock().run()}
         class:active={isCode}
@@ -464,6 +367,7 @@ ${selectedText}`,
         <Code size={16} />
       </button>
 
+      <!-- Heading -->
       <select
         class="heading-dropdown font-semibold text-xl"
         bind:value={currentHeading}
@@ -475,6 +379,7 @@ ${selectedText}`,
         <option value="3">h3</option>
       </select>
 
+      <!-- Regenerate Button -->
       <div class="relative" bind:this={regenerateContainer}>
         <button
           on:click={() => (showPromptInput = !showPromptInput)}
@@ -484,7 +389,7 @@ ${selectedText}`,
           {#if regenerating}
             <HourglassIcon
               size={18}
-              class=" border-1 border-gray-800 p-0.5 rounded-full spin"
+              class="border-1 border-gray-800 p-0.5 rounded-full spin"
               style="animation: spin 1s linear infinite;"
             />
           {:else}
@@ -494,35 +399,36 @@ ${selectedText}`,
 
         {#if showPromptInput}
           <div
-            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-1 py-1 border border-gray-200 dark:border-gray-700 z-[9999] transition-all duration-200"
+            class="absolute top-full -right-1 mt-2 w-49 bg-[#e9ebf1] shadow-2xl rounded-xl px-1 py-1 border border-gray-200 dark:border-gray-700 z-[9999]"
           >
-            <!-- Input -->
             <input
               type="text"
               placeholder="e.g. Make it formal"
               bind:value={userPrompt}
-              class="w-full rounded-xl px-3 py-2 text-sm bg-[#e9ebf1] text-gray-800 dark:text-gray-900 border border-gray-300 dark:border-gray-600 focus:ring-1 focus:ring-gray-400 focus:outline-none transition"
+              class="w-full rounded-xl px-3 py-2 text-sm bg-[#e9ebf1] border border-gray-300 focus:ring-1 focus:ring-gray-400"
             />
-
-            <!-- Buttons -->
             <div class="flex justify-between mt-1 gap-1">
               <button
-                class=" w-full text-xs px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                class="w-full text-xs px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
                 on:click={() => (
                   (showPromptInput = false), cancelRegeneration()
                 )}
               >
-                <X class="m-2" size={14} />
+                <X size={14} />
               </button>
               <button
-                class={` w-full text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition  ${regenerating ? "text-green-800 bg-indigo-600 hover:none" : "text-green-600 bg-indigo-400"}`}
+                class={`w-full text-xs px-4 py-2 rounded-lg font-medium shadow-sm transition ${
+                  regenerating
+                    ? "text-green-800 bg-indigo-600"
+                    : "text-green-600 bg-indigo-400"
+                }`}
                 on:click={regenerateSelection}
                 disabled={regenerating}
               >
                 {#if regenerating}
-                  <Loader2 class="animate-spin m-2" size={14} />
+                  <Loader2 class="animate-spin" size={14} />
                 {:else}
-                  <Check class="m-2" size={14} />
+                  <Check size={14} />
                 {/if}
               </button>
             </div>
@@ -532,6 +438,7 @@ ${selectedText}`,
     </div>
   {/if}
 
+  <!-- Editor -->
   <div bind:this={element} class="editor z-10"></div>
 </div>
 
