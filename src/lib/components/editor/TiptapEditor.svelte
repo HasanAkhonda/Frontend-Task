@@ -88,7 +88,7 @@
         updateActiveStyles();
       });
     });
-const handleClick = (event: MouseEvent) => {
+const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as Node;
 
   // If clicked outside editor + bubble menu
@@ -133,7 +133,7 @@ const handleClick = (event: MouseEvent) => {
   }
 };
 
-document.addEventListener("mousedown", handleClick);
+document.addEventListener("mousedown", handleClickOutside);
 
 
 
@@ -358,9 +358,9 @@ ${selectedText}`,
 
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
-  // $: if (editor && content) {
-  //     typeContent(content);
-  //   }
+  $: if (editor && content) {
+      typeContent(content);
+    }
 
   // helper: typewriter effect aded with highlighter
   async function typewriterInsert(text: string, speed = 60) {
