@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CustomButton from "./../reusable/custom-ui/custom-button.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
@@ -9,6 +10,11 @@
   import MoonIcon from "@lucide/svelte/icons/moon";
   import { toggleMode } from "mode-watcher";
   import { formatAIContent } from "$lib/utils/aiFormatter";
+  import LayoutWrapper from "../reusable/wrappers/layout-wrapper/layout-wrapper.svelte";
+  import CardWrapper from "../reusable/wrappers/card-wrapper/card-wrapper.svelte";
+  import CustomLabeledInput from "../reusable/custom-ui/custom-labeled-input.svelte";
+  import CustomLoader from "../reusable/custom-ui/custom-loader.svelte";
+  import AnimatedCardWrapper from "../reusable/custom-ui/animated-card-wrapper.svelte";
   // -----------------------------
   // Local state
   // -----------------------------
@@ -129,14 +135,12 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
 <!-- ===========================
      Layout Wrapper
 =========================== -->
-<div
-  class="flex flex-col bg-gradient-to-tr from-red-400/50 via-35% to-blue-500/50 dark:bg-[url('https://images.unsplash.com/photo-1610505466122-b1d9482901ef?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.1.0')] bg-cover bg-center bg-no-repeat w-full md:overflow-hidden h-full md:h-screen md:flex-row  justify-center  items-center md:gap-5 lg:gap-10 px-4 md:px-0 py-6 md:py-15"
->
+<LayoutWrapper>
   <!-- ===========================
        First Card (Form)
   ============================ -->
-  <Card.Root
-    class={`w-full max-w-lg flex flex-col px-8 py-8 transition-all duration-1000   shadow-xl rounded-2xl h-full md:h-[520px] bg-white/15 dark:bg-gray-900 ${showSecondCard?"md:translate-x-[0%]":"md:translate-x-[53%]"}`}
+  <CardWrapper
+    cardStyle={`${showSecondCard ? "md:translate-x-[0%]" : "md:translate-x-[53%]"}`}
   >
     <div class="relative w-full flex justify-center items-center mb-6">
       <h1
@@ -145,15 +149,19 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         MagicMind
       </h1>
       <div class="absolute -right-6 -top-6">
-        <Button onclick={toggleMode} variant="ghost" size="icon">
+        <CustomButton
+          Onclicked={toggleMode}
+          buttonSize="icon"
+          buttonStyle=""
+          customVarient="ghost"
+        >
           <SunIcon
             class="h-[1rem] w-[1rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"
           />
           <MoonIcon
             class="absolute h-[1rem] w-[1rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
           />
-          <span class="sr-only">Toggle theme</span>
-        </Button>
+        </CustomButton>
       </div>
     </div>
 
@@ -161,163 +169,115 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
       <form class="flex flex-col gap-4" on:submit={handleSubmit}>
         <!-- Grid: Full Name & Title -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div class="flex flex-col gap-2">
-            <Label
-              for="fullname"
-              class="text-gray-500 dark:text-gray-300 text-md">Full Name</Label
-            >
-            <Input
-              id="fullname"
-              type="text"
-              placeholder="John Doe"
-              required
-              bind:value={fullname}
-              class="py-5.5 text-md"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="title" class="text-gray-500 dark:text-gray-300 text-md"
-              >Title</Label
-            >
-            <Input
-              id="title"
-              type="text"
-              placeholder="Frontend Engineer"
-              required
-              bind:value={title}
-              class="py-5.5"
-            />
-          </div>
+          <CustomLabeledInput
+            label="Full Name"
+            id="fullname"
+            type="text"
+            placeholder="John Doe"
+            required
+            bind:value={fullname}
+          />
+          <CustomLabeledInput
+            label="Title"
+            id="title"
+            type="text"
+            placeholder="Frontend Engineer"
+            required
+            bind:value={title}
+          />
         </div>
 
         <!-- Grid: Company & Tags -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div class="flex flex-col gap-2">
-            <Label
-              for="company"
-              class="text-gray-500 dark:text-gray-300 text-md">Company</Label
-            >
-            <Input
-              id="company"
-              type="text"
-              placeholder="MagicMind Inc."
-              required
-              bind:value={company}
-              class="py-5.5"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="tags" class="text-gray-500 dark:text-gray-300 text-md"
-              >Tags</Label
-            >
-            <Input
-              id="tags"
-              type="text"
-              placeholder="Frontend, UI/UX, React"
-              required
-              bind:value={tags}
-              class="py-5.5"
-            />
-          </div>
+          <CustomLabeledInput
+            label="Company"
+            id="company"
+            type="text"
+            placeholder="MagicMind Inc."
+            required
+            bind:value={company}
+          />
+          <CustomLabeledInput
+            label="Tags"
+            id="tags"
+            type="text"
+            placeholder="Frontend, UI/UX, React"
+            required
+            bind:value={tags}
+          />
         </div>
 
         <!-- Grid: Tone & Goal -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div class="flex flex-col gap-2">
-            <Label for="tone" class="text-gray-500 dark:text-gray-300 text-md"
-              >Tone</Label
-            >
-            <Input
-              id="tone"
-              type="text"
-              placeholder="Professional and approachable"
-              required
-              bind:value={tone}
-              class="py-5.5"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <Label for="goal" class="text-gray-500 dark:text-gray-300 text-md"
-              >Goal</Label
-            >
-            <Input
-              id="goal"
-              type="text"
-              placeholder="Create a detailed professional bio"
-              required
-              bind:value={goal}
-              class="py-5.5"
-            />
-          </div>
+          <CustomLabeledInput
+            label="Tone"
+            id="tone"
+            type="text"
+            placeholder="Professional and approachable"
+            required
+            bind:value={tone}
+          />
+          <CustomLabeledInput
+            label="Goal"
+            id="goal"
+            type="text"
+            placeholder="Create a detailed professional bio"
+            required
+            bind:value={goal}
+          />
         </div>
 
         <!-- Buttons -->
         <Card.Footer class="flex flex-row gap-4 mt-4 px-0">
-          <Button
-            type="button"
-            onclick={handleReset}
-            class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900"
-            >Reset</Button
+          <CustomButton
+            Onclicked={handleReset}
+            buttonSize="icon"
+            buttonStyle="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900"
+            customVarient="ghost"
+            buttonTitle="Reset"
+          />
+          <CustomButton
+            buttonType="submit"
+            buttonSize="icon"
+            buttonStyle="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
+            customVarient="ghost"
+            disabled={loadingAI}
+            >{loadingAI ? "Generating" : "Generate"}</CustomButton
           >
-          <Button
+
+          <!-- <Button
             type="submit"
             disabled={loadingAI}
             class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
             >{loadingAI ? "Generating" : "Generate"}</Button
-          >
+          > -->
         </Card.Footer>
       </form>
     </Card.Content>
-  </Card.Root>
+  </CardWrapper>
 
   <!-- ===========================
        Second Card (AI Content)
   ============================ -->
   <!-- {#if showSecondCard} -->
-    <div
-      in:fly={{ x: 400, duration: 800 }}
-      out:fly={{ x: 400, duration: 800 }}
-      class={`w-full  max-w-lg transition-all mt-6 md:mt-0 duration-1000 ${!showSecondCard?"md:translate-x-[53%] md:opacity-0 hidden md:block":"md:translate-x-[0%] opacity-100 block  "} `}
+  <AnimatedCardWrapper show={showSecondCard}>
+    <Card.Root
+      class="flex-col p-2 shadow-xl rounded-2xl h-full  max-h-[520px] md:h-[520px] bg-white/15   dark:bg-gray-900   "
     >
-      <Card.Root
-        class="flex-col p-2 shadow-xl rounded-2xl h-full  max-h-[520px] md:h-[520px] bg-white/15   dark:bg-gray-900   "
+      <Card.Content
+        class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  "
       >
-        <Card.Content
-          class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  "
-        >
-          {#if loadingAI}
-            <!-- Loader -->
-            <div class="flex justify-center items-center h-[520px]">
-              <span class="loader"></span>
-            </div>
-          {:else}
-            <!-- AI-generated content -->
-            <TiptapEditor content={editorContent} />
-          {/if}
-        </Card.Content>
-      </Card.Root>
-    </div>
+        {#if loadingAI}
+          <!-- Loader -->
+          <div class="flex justify-center items-center h-[504px]">
+            <CustomLoader />
+          </div>
+        {:else}
+          <!-- AI-generated content -->
+          <TiptapEditor content={editorContent} />
+        {/if}
+      </Card.Content>
+    </Card.Root>
+  </AnimatedCardWrapper>
   <!-- {/if} -->
-</div>
-
-<style>
-  :global(.ProseMirror) {
-    width: -webkit-fill-available;
-    position: relative;
-    border: none;
-    padding: 0;
-    outline: none;
-  }
-
-  /* Loader animation */
-  .loader {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
-    border-radius: 50%;
-    width: 3rem;
-    height: 3rem;
-    animation: spin 1s linear infinite;
-  }
-</style>
-
- 
+</LayoutWrapper>

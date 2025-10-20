@@ -1,5 +1,5 @@
 <script lang="ts">
-  import FormCard from "$lib/components/form/form-card.svelte";
+	import BioEntry from "$lib/components/biodata/bio-entry.svelte";
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
 
@@ -20,6 +20,6 @@
     </Button>
   </div>
   <div> -->
-    <FormCard />
+    <BioEntry />
   <!-- </div>
 </div> -->

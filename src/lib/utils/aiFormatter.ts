@@ -48,7 +48,7 @@ export function formatAIContent(aiText: string): string {
 
 
 //----------------------
-// formate card airesponce code
+// formate card ai responce code
 //----------------------
  // function formatAIContent(aiText: string): string {
   //   if (!aiText) {

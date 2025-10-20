@@ -277,7 +277,7 @@ Text: ${selectedText}`,
             ""
           )
           .run();
-        await typewriterInsert (regenerated, editor.state.selection.from);
+        await typewriterInsert(regenerated, editor.state.selection.from);
       }
     } catch (err: any) {
       if (err.name === "AbortError") console.log("Regeneration aborted");
@@ -319,9 +319,8 @@ Text: ${selectedText}`,
   // commmenting to stop main typewriter aimation/////////////////////////////////////////////////////////////////////////////////////////////
 
   $: if (editor && content) {
-      typeContent(content);
-    }
-
+    typeContent(content);
+  }
 
   // ======================================
   // Typewriter effect for AI response
