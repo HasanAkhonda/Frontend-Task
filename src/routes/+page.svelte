@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BioEntry from "$lib/components/biodata/bio-entry.svelte";
+	import BioEntry from "$lib/components/biodata/left-section/bio-entry.svelte";
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
 

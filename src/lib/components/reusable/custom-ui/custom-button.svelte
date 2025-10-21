@@ -40,6 +40,8 @@
   type={buttonType}
   {disabled}
 >
-  <slot><!-- optional fallback --></slot>
+<slot><!-- optional fallback --></slot>
+{#if buttonTitle}
   <span class={buttonTitleStyle}>{buttonTitle}</span>
+  {/if}
 </Button>

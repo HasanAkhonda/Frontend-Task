@@ -1,20 +1,15 @@
 <script lang="ts">
-  import CustomButton from "./../reusable/custom-ui/custom-button.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
-  import { fly } from "svelte/transition";
-  import TiptapEditor from "$lib/components/editor/TiptapEditor.svelte";
-  import SunIcon from "@lucide/svelte/icons/sun";
+  import { formatAIContent } from "$lib/utils/ai-formatter";
   import MoonIcon from "@lucide/svelte/icons/moon";
+  import SunIcon from "@lucide/svelte/icons/sun";
   import { toggleMode } from "mode-watcher";
-  import { formatAIContent } from "$lib/utils/aiFormatter";
-  import LayoutWrapper from "../reusable/wrappers/layout-wrapper/layout-wrapper.svelte";
-  import CardWrapper from "../reusable/wrappers/card-wrapper/card-wrapper.svelte";
-  import CustomLabeledInput from "../reusable/custom-ui/custom-labeled-input.svelte";
-  import CustomLoader from "../reusable/custom-ui/custom-loader.svelte";
-  import AnimatedCardWrapper from "../reusable/custom-ui/animated-card-wrapper.svelte";
+  import AnimatedCardWrapper from "$lib/components/reusable/custom-ui/animated-card-wrapper.svelte";
+  import CustomButton from "$lib/components/reusable/custom-ui/custom-button.svelte";
+  import CardWrapper from "$lib/components/reusable/wrappers/card-wrapper.svelte";
+  import LayoutWrapper from "$lib/components/reusable/wrappers/layout-wrapper.svelte";
+  import GenerationPannel from "../right-section/generation-pannel.svelte";
+  import BioForm from "./bio-form.svelte";
   // -----------------------------
   // Local state
   // -----------------------------
@@ -164,95 +159,18 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
         </CustomButton>
       </div>
     </div>
-
-    <Card.Content class="flex-1  px-0">
-      <form class="flex flex-col gap-4" on:submit={handleSubmit}>
-        <!-- Grid: Full Name & Title -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <CustomLabeledInput
-            label="Full Name"
-            id="fullname"
-            type="text"
-            placeholder="John Doe"
-            required
-            bind:value={fullname}
-          />
-          <CustomLabeledInput
-            label="Title"
-            id="title"
-            type="text"
-            placeholder="Frontend Engineer"
-            required
-            bind:value={title}
-          />
-        </div>
-
-        <!-- Grid: Company & Tags -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <CustomLabeledInput
-            label="Company"
-            id="company"
-            type="text"
-            placeholder="MagicMind Inc."
-            required
-            bind:value={company}
-          />
-          <CustomLabeledInput
-            label="Tags"
-            id="tags"
-            type="text"
-            placeholder="Frontend, UI/UX, React"
-            required
-            bind:value={tags}
-          />
-        </div>
-
-        <!-- Grid: Tone & Goal -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <CustomLabeledInput
-            label="Tone"
-            id="tone"
-            type="text"
-            placeholder="Professional and approachable"
-            required
-            bind:value={tone}
-          />
-          <CustomLabeledInput
-            label="Goal"
-            id="goal"
-            type="text"
-            placeholder="Create a detailed professional bio"
-            required
-            bind:value={goal}
-          />
-        </div>
-
-        <!-- Buttons -->
-        <Card.Footer class="flex flex-row gap-4 mt-4 px-0">
-          <CustomButton
-            Onclicked={handleReset}
-            buttonSize="icon"
-            buttonStyle="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-blue-400 via-75% to-teal-500 dark:from-blue-700 dark:via-75% dark:to-teal-900"
-            customVarient="ghost"
-            buttonTitle="Reset"
-          />
-          <CustomButton
-            buttonType="submit"
-            buttonSize="icon"
-            buttonStyle="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
-            customVarient="ghost"
-            disabled={loadingAI}
-            >{loadingAI ? "Generating" : "Generate"}</CustomButton
-          >
-
-          <!-- <Button
-            type="submit"
-            disabled={loadingAI}
-            class="flex-1 py-6 font-semibold text-lg dark:text-gray-300 bg-gradient-to-br from-red-400 via-35% to-blue-500 dark:from-red-700 dark:via-35% dark:to-blue-800"
-            >{loadingAI ? "Generating" : "Generate"}</Button
-          > -->
-        </Card.Footer>
-      </form>
+    <Card.Content class="flex-1 px-0">
+      <BioForm
+        bind:fullname
+        bind:title
+        bind:company
+        bind:tags
+        bind:tone
+        bind:goal
+        {loadingAI}
+        {handleSubmit}
+        {handleReset}
+      />
     </Card.Content>
   </CardWrapper>
 
@@ -261,23 +179,7 @@ Make it natural, inspiring, and easy to read. Avoid generic filler—write with 
   ============================ -->
   <!-- {#if showSecondCard} -->
   <AnimatedCardWrapper show={showSecondCard}>
-    <Card.Root
-      class="flex-col p-2 shadow-xl rounded-2xl h-full  max-h-[520px] md:h-[520px] bg-white/15   dark:bg-gray-900   "
-    >
-      <Card.Content
-        class="bg-white/40 dark:bg-white/5 rounded-2xl p-0 flex-1 w-full max-w-2xl editor-wrapper  "
-      >
-        {#if loadingAI}
-          <!-- Loader -->
-          <div class="flex justify-center items-center h-[504px]">
-            <CustomLoader />
-          </div>
-        {:else}
-          <!-- AI-generated content -->
-          <TiptapEditor content={editorContent} />
-        {/if}
-      </Card.Content>
-    </Card.Root>
+    <GenerationPannel {loadingAI} {editorContent} />
   </AnimatedCardWrapper>
   <!-- {/if} -->
 </LayoutWrapper>
